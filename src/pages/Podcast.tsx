@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { searchCareers, getCareerDetails, OnetCareer, OnetCareerDetail } from '@/lib/onet';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   Loader2, 
@@ -17,13 +20,21 @@ import {
   Briefcase,
   Clock,
   Download,
-  Share2
+  Share2,
+  Star,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function Podcast() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
   const [jobSearch, setJobSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<OnetCareer[]>([]);
+  const [selectedCareer, setSelectedCareer] = useState<OnetCareerDetail | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingCareer, setIsLoadingCareer] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [podcastReady, setPodcastReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,6 +45,31 @@ export default function Podcast() {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Load occupation from URL params
+  useEffect(() => {
+    const occupationCode = searchParams.get('occupation');
+    const occupationTitle = searchParams.get('title');
+    
+    if (occupationCode) {
+      loadCareerFromParams(occupationCode, occupationTitle || '');
+    }
+  }, [searchParams]);
+
+  const loadCareerFromParams = async (code: string, title: string) => {
+    setIsLoadingCareer(true);
+    setJobSearch(title);
+    
+    try {
+      const details = await getCareerDetails(code);
+      setSelectedCareer(details);
+    } catch (error) {
+      console.error('Failed to load career:', error);
+      toast.error('Failed to load career details');
+    } finally {
+      setIsLoadingCareer(false);
+    }
+  };
 
   // Simulate playback progress
   useEffect(() => {
@@ -46,15 +82,52 @@ export default function Podcast() {
     return () => clearInterval(interval);
   }, [isPlaying, progress]);
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!jobSearch.trim()) return;
+
+    setIsSearching(true);
+    setSelectedCareer(null);
+    
+    try {
+      const result = await searchCareers(jobSearch);
+      setSearchResults(result.career || []);
+      
+      if ((result.career?.length || 0) === 0) {
+        toast.info('No careers found. Try different keywords.');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Search failed');
+      console.error(error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectCareer = async (career: OnetCareer) => {
+    setIsLoadingCareer(true);
+    
+    try {
+      const details = await getCareerDetails(career.code);
+      setSelectedCareer(details);
+      setSearchResults([]);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load career details');
+      console.error(error);
+    } finally {
+      setIsLoadingCareer(false);
+    }
+  };
+
   const handleGenerate = async () => {
-    if (!jobSearch.trim()) {
-      toast.error('Please enter a job title or occupation');
+    if (!selectedCareer) {
+      toast.error('Please select a career first');
       return;
     }
     
     setIsGenerating(true);
     
-    // Simulate podcast generation
+    // Simulate podcast generation - will be replaced with actual ElevenLabs integration
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     setIsGenerating(false);
@@ -100,84 +173,176 @@ export default function Podcast() {
         </div>
 
         {!podcastReady ? (
-          /* Generation Form */
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-accent" />
-                Generate Your Podcast
-              </CardTitle>
-              <CardDescription>
-                Enter a job title or occupation to create a personalized 3-5 minute podcast
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="job-search">Job Title or Occupation</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="job-search"
-                    placeholder="e.g., Software Developer, Registered Nurse, Marketing Manager"
-                    value={jobSearch}
-                    onChange={(e) => setJobSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  We'll match this with O*NET occupations and your assessment results
-                </p>
-              </div>
+          <div className="space-y-6">
+            {/* Career Search/Selection */}
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                  Generate Your Podcast
+                </CardTitle>
+                <CardDescription>
+                  Search for a career or use one from your assessment results
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Search Form */}
+                <form onSubmit={handleSearch} className="space-y-2">
+                  <Label htmlFor="job-search">Search Careers</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="job-search"
+                        placeholder="e.g., Software Developer, Nurse, Marketing..."
+                        value={jobSearch}
+                        onChange={(e) => setJobSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button type="submit" variant="outline" disabled={isSearching}>
+                      {isSearching ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </form>
 
-              <div className="p-4 rounded-xl bg-muted/50 space-y-3">
-                <h4 className="font-medium text-sm">Your podcast will include:</h4>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    How your interests align with this career
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Work values match analysis
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Skills from your resume that apply
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Recommendations and next steps
-                  </li>
-                </ul>
-              </div>
-
-              <Button
-                variant="accent"
-                size="lg"
-                className="w-full"
-                onClick={handleGenerate}
-                disabled={isGenerating || !jobSearch.trim()}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Generating your podcast...
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-5 w-5" />
-                    Generate Podcast
-                  </>
+                {/* Search Results */}
+                {searchResults.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Select a Career</Label>
+                    <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
+                      {searchResults.map((career) => (
+                        <button
+                          key={career.code}
+                          onClick={() => handleSelectCareer(career)}
+                          className="w-full text-left p-2 rounded-md hover:bg-primary/5 transition-colors flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{career.title}</span>
+                          </div>
+                          {career.tags?.bright_outlook && (
+                            <Badge variant="secondary" className="gap-1 text-xs">
+                              <Star className="h-3 w-3" />
+                              Bright
+                            </Badge>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </Button>
 
-              {isGenerating && (
-                <div className="text-center text-sm text-muted-foreground animate-pulse">
-                  This may take a minute. We're crafting personalized content just for you...
+                {/* Loading Career */}
+                {isLoadingCareer && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
+
+                {/* Selected Career */}
+                {selectedCareer && (
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                          {selectedCareer.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">{selectedCareer.code}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCareer(null);
+                          setJobSearch('');
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                    {selectedCareer.what_they_do && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedCareer.what_they_do}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* What the podcast includes */}
+                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                  <h4 className="font-medium text-sm">Your podcast will include:</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      How your interests align with this career
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Work values match analysis
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Key skills and knowledge needed
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Job outlook and salary information
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Personalized recommendations
+                    </li>
+                  </ul>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <Button
+                  variant="accent"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !selectedCareer}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Generating your podcast...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-5 w-5" />
+                      Generate Podcast
+                    </>
+                  )}
+                </Button>
+
+                {isGenerating && (
+                  <div className="text-center text-sm text-muted-foreground animate-pulse">
+                    This may take a minute. We're crafting personalized content just for you...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Browse Careers Link */}
+            <Card>
+              <CardContent className="p-4">
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => navigate('/careers')}
+                >
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Browse All Careers with O*NET Data
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           /* Podcast Player */
           <div className="space-y-6 animate-scale-in">
@@ -191,7 +356,7 @@ export default function Podcast() {
                 </h2>
                 <p className="text-primary-foreground/70 flex items-center justify-center gap-2">
                   <Briefcase className="h-4 w-4" />
-                  {jobSearch}
+                  {selectedCareer?.title || jobSearch}
                 </p>
               </div>
               
@@ -271,6 +436,7 @@ export default function Podcast() {
                     setPodcastReady(false);
                     setProgress(0);
                     setIsPlaying(false);
+                    setSelectedCareer(null);
                     setJobSearch('');
                   }}
                 >
