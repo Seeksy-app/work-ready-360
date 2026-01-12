@@ -385,6 +385,8 @@ export default function Podcast() {
       // Fetch user's assessment results for personalization
       let userInterests: string[] = [];
       let userValues: string[] = [];
+      let userValuesScores: Record<string, number> | undefined;
+      let careerWorkValues: Record<string, number> | undefined;
       
       if (user) {
         const [interestResult, valuesResult] = await Promise.all([
@@ -397,7 +399,7 @@ export default function Podcast() {
             .single(),
           supabase
             .from('work_importance_results')
-            .select('top_values')
+            .select('top_values, scores')
             .eq('user_id', user.id)
             .order('completed_at', { ascending: false })
             .limit(1)
@@ -406,6 +408,35 @@ export default function Podcast() {
         
         userInterests = interestResult.data?.top_interests || [];
         userValues = valuesResult.data?.top_values || [];
+        
+        // Extract normalized scores for work values matching explanation
+        if (valuesResult.data?.scores) {
+          const scores = valuesResult.data.scores as Record<string, { normalized?: number; raw?: number }>;
+          userValuesScores = {};
+          for (const [key, value] of Object.entries(scores)) {
+            userValuesScores[key] = value.normalized ?? value.raw ?? 50;
+          }
+        }
+        
+        // Fetch career work values from O*NET
+        try {
+          const workValuesResponse = await supabase.functions.invoke('onet-work-values', {
+            body: {
+              action: 'get_occupation_values',
+              occupation_code: selectedCareer.code,
+            },
+          });
+          
+          if (workValuesResponse.data?.success && workValuesResponse.data?.profile?.values) {
+            careerWorkValues = {};
+            const values = workValuesResponse.data.profile.values;
+            for (const [key, value] of Object.entries(values)) {
+              careerWorkValues[key] = (value as { importance_0_100: number }).importance_0_100;
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch career work values, continuing without:', err);
+        }
       }
       
       const response = await fetch(
@@ -428,6 +459,8 @@ export default function Podcast() {
             salary: selectedCareer.outlook?.salary,
             userInterests,
             userValues,
+            userValuesScores,
+            careerWorkValues,
             occupationCode: selectedCareer.code,
             userId: user?.id,
             savePodcast: !!user,

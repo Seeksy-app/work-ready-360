@@ -38,6 +38,8 @@ interface CareerPodcastRequest {
   salary?: { annual_median?: number };
   userInterests?: string[];
   userValues?: string[];
+  userValuesScores?: Record<string, number>;
+  careerWorkValues?: Record<string, number>;
   occupationCode?: string;
   userId?: string;
   savePodcast?: boolean;
@@ -205,6 +207,63 @@ Remember: Output ONLY the JSON array, nothing else.`;
   }
 }
 
+function generateWorkValuesExplanation(
+  userValues: string[],
+  userValuesScores?: Record<string, number>,
+  careerWorkValues?: Record<string, number>
+): { matchExplanation: string; topMatches: string[]; gaps: string[] } {
+  const topMatches: string[] = [];
+  const gaps: string[] = [];
+  
+  if (!userValues || userValues.length === 0) {
+    return { matchExplanation: '', topMatches: [], gaps: [] };
+  }
+
+  // Format value names for display (e.g., "Working_Conditions" -> "Working Conditions")
+  const formatValue = (v: string) => v.replace(/_/g, ' ');
+
+  // If we have both user scores and career values, do detailed matching
+  if (userValuesScores && careerWorkValues) {
+    const userTop3 = Object.entries(userValuesScores)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([key]) => key);
+    
+    const careerTop3 = Object.entries(careerWorkValues)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([key]) => key);
+    
+    // Find overlaps
+    for (const value of userTop3) {
+      if (careerTop3.includes(value)) {
+        topMatches.push(formatValue(value));
+      }
+    }
+    
+    // Find gaps (user values not emphasized in career)
+    for (const value of userTop3) {
+      const careerScore = careerWorkValues[value] || 0;
+      if (careerScore < 50) {
+        gaps.push(formatValue(value));
+      }
+    }
+  } else {
+    // Fallback to simple user values
+    topMatches.push(...userValues.slice(0, 3).map(formatValue));
+  }
+
+  let matchExplanation = '';
+  if (topMatches.length > 0) {
+    matchExplanation = `This career matches your top values: ${topMatches.join(' and ')}. `;
+  }
+  if (gaps.length > 0) {
+    matchExplanation += `However, your value for ${gaps.join(' and ')} may be less emphasized in this role.`;
+  }
+
+  return { matchExplanation, topMatches, gaps };
+}
+
 function generateCareerScript(data: CareerPodcastRequest): Array<{ speaker: 'host' | 'guest'; text: string }> {
   const script: Array<{ speaker: 'host' | 'guest'; text: string }> = [];
   
@@ -256,17 +315,43 @@ function generateCareerScript(data: CareerPodcastRequest): Array<{ speaker: 'hos
     });
   }
 
+  // Enhanced work values matching explanation
   if (data.userValues && data.userValues.length > 0) {
-    const values = data.userValues.slice(0, 3).join(', ');
-    script.push({
-      speaker: 'host',
-      text: `What about work values? How does this career match up?`
-    });
+    const { matchExplanation, topMatches, gaps } = generateWorkValuesExplanation(
+      data.userValues,
+      data.userValuesScores,
+      data.careerWorkValues
+    );
     
     script.push({
-      speaker: 'guest',
-      text: `Your work values emphasize ${values}. This career can definitely satisfy those needs, especially as you grow in the role.`
+      speaker: 'host',
+      text: `What about work values? This is really important for long-term job satisfaction.`
     });
+    
+    if (topMatches.length > 0) {
+      script.push({
+        speaker: 'guest',
+        text: `Great news here! This career matches your top values: ${topMatches.join(' and ')}. That's a strong indicator you'd find this work meaningful and fulfilling.`
+      });
+      
+      if (gaps.length > 0) {
+        script.push({
+          speaker: 'host',
+          text: `Are there any areas where there might be some trade-offs?`
+        });
+        
+        script.push({
+          speaker: 'guest',
+          text: `Worth noting that your value for ${gaps.join(' and ')} may be less emphasized in this particular role. But that doesn't mean it can't work - it just means being intentional about finding those needs elsewhere, or seeking out specific employers who prioritize those values.`
+        });
+      }
+    } else {
+      const values = data.userValues.slice(0, 3).join(', ');
+      script.push({
+        speaker: 'guest',
+        text: `Your work values emphasize ${values}. This career can definitely satisfy those needs, especially as you grow in the role and find the right work environment.`
+      });
+    }
   }
 
   script.push({
