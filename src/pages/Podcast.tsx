@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import SavedPodcasts from '@/components/SavedPodcasts';
 import { toast } from 'sonner';
 import { 
   Loader2, 
@@ -26,15 +27,31 @@ import {
   CheckCircle2,
   User,
   FileText,
-  Heart
+  Heart,
+  Library,
+  Save
 } from 'lucide-react';
 
 type PodcastType = 'profile' | 'career';
+
+interface SavedPodcast {
+  id: string;
+  title: string;
+  audio_url: string;
+  transcript: string | null;
+  duration_seconds: number | null;
+  occupation_code: string | null;
+  occupation_title: string | null;
+  created_at: string;
+}
 
 export default function Podcast() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'saved' | 'profile' | 'career'>('saved');
   
   // Podcast type state
   const [podcastType, setPodcastType] = useState<PodcastType>('profile');
@@ -65,6 +82,11 @@ export default function Podcast() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [transcript, setTranscript] = useState<string>('');
   const [generatedType, setGeneratedType] = useState<PodcastType>('profile');
+  const [currentPodcastTitle, setCurrentPodcastTitle] = useState<string>('');
+  
+  // Saved podcast playback state
+  const [playingSavedPodcast, setPlayingSavedPodcast] = useState<SavedPodcast | null>(null);
+  const [savedPodcastKey, setSavedPodcastKey] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -85,12 +107,29 @@ export default function Podcast() {
     const occupationTitle = searchParams.get('title');
     
     if (occupationCode) {
+      setActiveTab('career');
       setPodcastType('career');
       loadCareerFromParams(occupationCode, occupationTitle || '');
     }
   }, [searchParams]);
 
-  const loadProfileData = async () => {
+  // Handle playing a saved podcast
+  const handlePlaySavedPodcast = useCallback((podcast: SavedPodcast) => {
+    audioElement?.pause();
+    setPlayingSavedPodcast(podcast);
+    
+    const audio = new Audio(podcast.audio_url);
+    setAudioElement(audio);
+    setTranscript(podcast.transcript || '');
+    setAudioDuration(podcast.duration_seconds || 0);
+    setCurrentPodcastTitle(podcast.title);
+    setGeneratedType(podcast.occupation_code ? 'career' : 'profile');
+    setPodcastReady(true);
+    setProgress(0);
+    setIsPlaying(false);
+  }, [audioElement]);
+
+  const loadProfileData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -101,20 +140,20 @@ export default function Podcast() {
           .eq('user_id', user.id)
           .order('completed_at', { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('work_importance_results')
           .select('top_values, scores')
           .eq('user_id', user.id)
           .order('completed_at', { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('resumes')
           .select('id')
           .eq('user_id', user.id)
           .limit(1)
-          .single()
+          .maybeSingle()
       ]);
       
       const hasInterests = !!interestResult.data;
@@ -133,7 +172,7 @@ export default function Podcast() {
     } catch (error) {
       console.error('Failed to load profile data:', error);
     }
-  };
+  }, [user]);
 
   const loadCareerFromParams = async (code: string, title: string) => {
     setIsLoadingCareer(true);
@@ -261,10 +300,12 @@ export default function Podcast() {
           .single()
       ]);
       
-      // Prepare request body
+      // Prepare request body with save options
       const requestBody: any = {
         type: 'profile',
         userName: profileResult.data?.full_name || 'our listener',
+        userId: user.id,
+        savePodcast: true,
       };
       
       if (interestResult.data) {
@@ -282,14 +323,12 @@ export default function Podcast() {
       }
       
       if (resumeResult.data?.parsed_content) {
-        // Extract text from parsed resume content
         const parsedContent = resumeResult.data.parsed_content as any;
         requestBody.resumeContent = typeof parsedContent === 'string' 
           ? parsedContent 
           : JSON.stringify(parsedContent);
       }
       
-      // Call the edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
         {
@@ -309,15 +348,22 @@ export default function Podcast() {
         throw new Error(data.error || 'Failed to generate podcast');
       }
       
-      // Create audio element with base64 data
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      const audio = new Audio(audioUrl);
+      // Use saved audio URL if available, otherwise use base64
+      let audio: HTMLAudioElement;
+      if (data.audioUrl) {
+        audio = new Audio(data.audioUrl);
+      } else {
+        const audioDataUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        audio = new Audio(audioDataUrl);
+      }
       setAudioElement(audio);
       setTranscript(data.transcript || '');
       setGeneratedType('profile');
+      setCurrentPodcastTitle('Your Career Profile');
       
       setPodcastReady(true);
-      toast.success('Your career profile podcast is ready!');
+      setSavedPodcastKey(prev => prev + 1); // Refresh saved podcasts list
+      toast.success('Your career profile podcast is ready and saved!');
       
     } catch (error: any) {
       console.error('Podcast generation error:', error);
@@ -362,7 +408,6 @@ export default function Podcast() {
         userValues = valuesResult.data?.top_values || [];
       }
       
-      // Call the edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
         {
@@ -383,6 +428,9 @@ export default function Podcast() {
             salary: selectedCareer.outlook?.salary,
             userInterests,
             userValues,
+            occupationCode: selectedCareer.code,
+            userId: user?.id,
+            savePodcast: !!user,
           }),
         }
       );
@@ -393,15 +441,21 @@ export default function Podcast() {
         throw new Error(data.error || 'Failed to generate podcast');
       }
       
-      // Create audio element with base64 data
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      const audio = new Audio(audioUrl);
+      let audio: HTMLAudioElement;
+      if (data.audioUrl) {
+        audio = new Audio(data.audioUrl);
+      } else {
+        const audioDataUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        audio = new Audio(audioDataUrl);
+      }
       setAudioElement(audio);
       setTranscript(data.transcript || '');
       setGeneratedType('career');
+      setCurrentPodcastTitle(selectedCareer.title);
       
       setPodcastReady(true);
-      toast.success('Your podcast is ready!');
+      setSavedPodcastKey(prev => prev + 1);
+      toast.success('Your podcast is ready and saved!');
       
     } catch (error: any) {
       console.error('Podcast generation error:', error);
@@ -489,17 +543,39 @@ export default function Podcast() {
 
         {!podcastReady ? (
           <div className="space-y-6">
-            <Tabs value={podcastType} onValueChange={(v) => setPodcastType(v as PodcastType)}>
-              <TabsList className="grid w-full grid-cols-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'saved' | 'profile' | 'career')}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="saved" className="gap-2">
+                  <Library className="h-4 w-4" />
+                  My Podcasts
+                </TabsTrigger>
                 <TabsTrigger value="profile" className="gap-2">
                   <User className="h-4 w-4" />
-                  My Profile
+                  Profile
                 </TabsTrigger>
                 <TabsTrigger value="career" className="gap-2">
                   <Briefcase className="h-4 w-4" />
-                  Specific Career
+                  Career
                 </TabsTrigger>
               </TabsList>
+
+              {/* Saved Podcasts Tab */}
+              <TabsContent value="saved" className="space-y-6">
+                <Card className="animate-fade-in">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Library className="h-5 w-5 text-accent" />
+                      Your Saved Podcasts
+                    </CardTitle>
+                    <CardDescription>
+                      Listen to your previously generated podcasts
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SavedPodcasts key={savedPodcastKey} onPlayPodcast={handlePlaySavedPodcast} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               {/* Profile Podcast Tab */}
               <TabsContent value="profile" className="space-y-6">

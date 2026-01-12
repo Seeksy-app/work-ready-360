@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +23,8 @@ interface ProfilePodcastRequest {
     scores: Record<string, number>;
     topValues: string[];
   };
+  userId?: string;
+  savePodcast?: boolean;
 }
 
 interface CareerPodcastRequest {
@@ -35,6 +38,9 @@ interface CareerPodcastRequest {
   salary?: { annual_median?: number };
   userInterests?: string[];
   userValues?: string[];
+  occupationCode?: string;
+  userId?: string;
+  savePodcast?: boolean;
 }
 
 type PodcastRequest = ProfilePodcastRequest | CareerPodcastRequest;
@@ -281,6 +287,78 @@ function generateCareerScript(data: CareerPodcastRequest): Array<{ speaker: 'hos
   return script;
 }
 
+async function savePodcastToDatabase(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  userId: string,
+  audioData: Uint8Array,
+  transcript: string,
+  duration: number,
+  data: PodcastRequest
+): Promise<{ podcastId: string; audioUrl: string }> {
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const podcastId = crypto.randomUUID();
+  const fileName = `${userId}/${podcastId}.mp3`;
+  
+  // Upload audio to storage
+  const { error: uploadError } = await supabase.storage
+    .from('podcasts')
+    .upload(fileName, audioData, {
+      contentType: 'audio/mpeg',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("Storage upload error:", uploadError);
+    throw new Error(`Failed to upload audio: ${uploadError.message}`);
+  }
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('podcasts')
+    .getPublicUrl(fileName);
+
+  const audioUrl = urlData.publicUrl;
+
+  // Determine title based on podcast type
+  let title: string;
+  let occupationCode: string | null = null;
+  let occupationTitle: string | null = null;
+
+  if (data.type === 'profile') {
+    title = `Career Profile - ${new Date().toLocaleDateString()}`;
+  } else {
+    title = `Career Spotlight: ${data.careerTitle}`;
+    occupationCode = data.occupationCode || null;
+    occupationTitle = data.careerTitle || null;
+  }
+
+  // Save podcast record to database using raw insert
+  const { error: dbError } = await supabase
+    .from('podcasts')
+    .insert([{
+      id: podcastId,
+      user_id: userId,
+      title,
+      audio_url: audioUrl,
+      transcript,
+      duration_seconds: duration,
+      status: 'completed',
+      occupation_code: occupationCode,
+      occupation_title: occupationTitle,
+    }]);
+
+  if (dbError) {
+    console.error("Database insert error:", dbError);
+    // Try to clean up the uploaded file
+    await supabase.storage.from('podcasts').remove([fileName]);
+    throw new Error(`Failed to save podcast: ${dbError.message}`);
+  }
+
+  console.log(`Podcast saved successfully: ${podcastId}`);
+  return { podcastId, audioUrl };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -330,24 +408,50 @@ serve(async (req) => {
       combined.set(new Uint8Array(segment), offset);
       offset += segment.byteLength;
     }
-    
-    // Convert to ArrayBuffer for base64 encoding
-    const combinedBuffer = combined.buffer as ArrayBuffer;
 
     // Create transcript
     const transcript = script.map(s => 
       `[${s.speaker === 'host' ? 'Host' : 'Co-host'}]: ${s.text}`
     ).join('\n\n');
 
+    // Calculate approximate duration (rough estimate based on audio size)
+    const duration = Math.round(totalLength / 16000);
+
+    // Save to database if requested
+    let savedPodcast: { podcastId: string; audioUrl: string } | null = null;
+    
+    if (data.savePodcast && data.userId) {
+      console.log("Saving podcast to database...");
+      
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("Supabase credentials not configured");
+      } else {
+        savedPodcast = await savePodcastToDatabase(
+          supabaseUrl,
+          supabaseServiceKey,
+          data.userId,
+          combined,
+          transcript,
+          duration,
+          data
+        );
+      }
+    }
+
     // Return base64 encoded audio with transcript
-    const audioBase64 = base64Encode(combinedBuffer);
+    const audioBase64 = base64Encode(combined.buffer as ArrayBuffer);
     
     return new Response(
       JSON.stringify({
         success: true,
         audioContent: audioBase64,
         transcript,
-        duration: Math.round(totalLength / 16000),
+        duration,
+        podcastId: savedPodcast?.podcastId,
+        audioUrl: savedPodcast?.audioUrl,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
