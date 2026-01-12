@@ -94,7 +94,7 @@ export default function Dashboard() {
       description: 'Discover careers that match your interests',
       icon: Target,
       completed: hasInterestResults,
-      href: '/assessment/interest',
+      href: hasInterestResults ? '/assessment/interest/results' : '/assessment/interest',
     },
     {
       id: 'work-importance',
@@ -102,7 +102,7 @@ export default function Dashboard() {
       description: 'Identify what matters most in your career',
       icon: Heart,
       completed: hasWorkImportanceResults,
-      href: '/assessment/work-importance',
+      href: hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance',
     },
   ];
 

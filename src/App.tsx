@@ -8,7 +8,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import InterestProfiler from "./pages/InterestProfiler";
+import InterestProfilerResults from "./pages/InterestProfilerResults";
 import WorkImportance from "./pages/WorkImportance";
+import WorkImportanceResults from "./pages/WorkImportanceResults";
 import Resume from "./pages/Resume";
 import Podcast from "./pages/Podcast";
 import CareerExplorer from "./pages/CareerExplorer";
@@ -29,7 +31,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/assessment/interest" element={<InterestProfiler />} />
+            <Route path="/assessment/interest/results" element={<InterestProfilerResults />} />
             <Route path="/assessment/work-importance" element={<WorkImportance />} />
+            <Route path="/assessment/work-importance/results" element={<WorkImportanceResults />} />
             <Route path="/resume" element={<Resume />} />
             <Route path="/podcast" element={<Podcast />} />
             <Route path="/careers" element={<CareerExplorer />} />
