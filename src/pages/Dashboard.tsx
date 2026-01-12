@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,9 +15,9 @@ import {
   Circle, 
   ArrowRight,
   LogOut,
-  User,
   Sparkles,
-  Play
+  Play,
+  Briefcase
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
@@ -24,11 +25,39 @@ export default function Dashboard() {
   const { user, profile, loading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
 
+  const [hasInterestResults, setHasInterestResults] = useState(false);
+  const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Check assessment completion status
+  useEffect(() => {
+    const checkAssessments = async () => {
+      if (!user) return;
+
+      const [interestRes, workRes] = await Promise.all([
+        supabase
+          .from('interest_profiler_results')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1),
+        supabase
+          .from('work_importance_results')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1),
+      ]);
+
+      setHasInterestResults((interestRes.data?.length || 0) > 0);
+      setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
+    };
+
+    checkAssessments();
+  }, [user]);
 
   if (loading) {
     return (
@@ -38,14 +67,13 @@ export default function Dashboard() {
     );
   }
 
-  // Mock progress data - will be replaced with real data
   const assessments = [
     {
       id: 'interest',
       title: 'Interest Profiler',
       description: 'Discover careers that match your interests',
       icon: Target,
-      completed: false,
+      completed: hasInterestResults,
       href: '/assessment/interest',
     },
     {
@@ -53,14 +81,16 @@ export default function Dashboard() {
       title: 'Work Importance',
       description: 'Identify what matters most in your career',
       icon: Heart,
-      completed: false,
+      completed: hasWorkImportanceResults,
       href: '/assessment/work-importance',
     },
   ];
 
+  const assessmentsComplete = hasInterestResults && hasWorkImportanceResults;
+
   const steps = [
-    { id: 1, title: 'Complete Assessments', completed: false },
-    { id: 2, title: 'Upload Resume', completed: false },
+    { id: 1, title: 'Complete Assessments', completed: assessmentsComplete },
+    { id: 2, title: 'Explore Careers', completed: false },
     { id: 3, title: 'Generate Podcast', completed: false },
   ];
 
@@ -197,10 +227,30 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Resume & Podcast Section */}
+        {/* Career Explorer & Resume Section */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Link to="/resume">
+          <Link to="/careers">
             <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Briefcase className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Explore Careers</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Search O*NET careers and get personalized recommendations
+                  </p>
+                  <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 transition-all">
+                    Explore Now
+                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/resume">
+            <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up" style={{ animationDelay: '0.25s' }}>
               <CardContent className="p-6 flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-secondary">
                   <FileText className="h-6 w-6 text-secondary-foreground" />
@@ -218,28 +268,29 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </Link>
-
-          <Link to="/podcast">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 border-dashed animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <CardContent className="p-6 flex items-start gap-4">
-                <div className="p-3 rounded-xl gradient-accent">
-                  <Mic className="h-6 w-6 text-accent-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Generate Podcast</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Create your personalized career podcast
-                  </p>
-                  <div className="flex items-center text-sm text-accent font-medium group-hover:gap-2 transition-all">
-                    <Play className="h-4 w-4 mr-1" />
-                    Generate Now
-                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
+
+        {/* Podcast Section */}
+        <Link to="/podcast">
+          <Card className="hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 border-dashed animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className="p-3 rounded-xl gradient-accent">
+                <Mic className="h-6 w-6 text-accent-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Generate Podcast</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Create your personalized 3-5 minute career podcast with AI
+                </p>
+                <div className="flex items-center text-sm text-accent font-medium group-hover:gap-2 transition-all">
+                  <Play className="h-4 w-4 mr-1" />
+                  Generate Now
+                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </main>
     </div>
   );

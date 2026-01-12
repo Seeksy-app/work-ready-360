@@ -11,6 +11,7 @@ import InterestProfiler from "./pages/InterestProfiler";
 import WorkImportance from "./pages/WorkImportance";
 import Resume from "./pages/Resume";
 import Podcast from "./pages/Podcast";
+import CareerExplorer from "./pages/CareerExplorer";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/assessment/work-importance" element={<WorkImportance />} />
             <Route path="/resume" element={<Resume />} />
             <Route path="/podcast" element={<Podcast />} />
+            <Route path="/careers" element={<CareerExplorer />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
