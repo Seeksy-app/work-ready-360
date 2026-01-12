@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { 
   Loader2, 
   Target, 
@@ -27,6 +28,9 @@ export default function Dashboard() {
 
   const [hasInterestResults, setHasInterestResults] = useState(false);
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
+  const [hasResume, setHasResume] = useState(false);
+  const [hasPodcasts, setHasPodcasts] = useState(false);
+  const [hasExploredCareers, setHasExploredCareers] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,12 +38,12 @@ export default function Dashboard() {
     }
   }, [user, loading, navigate]);
 
-  // Check assessment completion status
+  // Check completion status for all items
   useEffect(() => {
-    const checkAssessments = async () => {
+    const checkCompletionStatus = async () => {
       if (!user) return;
 
-      const [interestRes, workRes] = await Promise.all([
+      const [interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
         supabase
           .from('interest_profiler_results')
           .select('id')
@@ -50,13 +54,29 @@ export default function Dashboard() {
           .select('id')
           .eq('user_id', user.id)
           .limit(1),
+        supabase
+          .from('resumes')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1),
+        supabase
+          .from('podcasts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .limit(1),
       ]);
 
       setHasInterestResults((interestRes.data?.length || 0) > 0);
       setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
+      setHasResume((resumeRes.data?.length || 0) > 0);
+      setHasPodcasts((podcastRes.data?.length || 0) > 0);
+      
+      // Mark careers as explored if user has completed at least one assessment
+      setHasExploredCareers((interestRes.data?.length || 0) > 0 || (workRes.data?.length || 0) > 0);
     };
 
-    checkAssessments();
+    checkCompletionStatus();
   }, [user]);
 
   if (loading) {
@@ -87,15 +107,30 @@ export default function Dashboard() {
   ];
 
   const assessmentsComplete = hasInterestResults && hasWorkImportanceResults;
+  const assessmentProgress = ((hasInterestResults ? 1 : 0) + (hasWorkImportanceResults ? 1 : 0)) / 2 * 100;
 
   const steps = [
     { id: 1, title: 'Complete Assessments', completed: assessmentsComplete },
-    { id: 2, title: 'Explore Careers', completed: false },
-    { id: 3, title: 'Generate Podcast', completed: false },
+    { id: 2, title: 'Explore Careers', completed: hasExploredCareers },
+    { id: 3, title: 'Generate Podcast', completed: hasPodcasts },
   ];
 
   const completedSteps = steps.filter(s => s.completed).length;
   const progress = (completedSteps / steps.length) * 100;
+
+  // Completion badge component
+  const CompletionBadge = ({ completed, label }: { completed: boolean; label?: string }) => {
+    if (!completed) return null;
+    return (
+      <Badge 
+        variant="outline" 
+        className="bg-success/10 text-success border-success/20 gap-1"
+      >
+        <CheckCircle2 className="h-3 w-3" />
+        {label || 'Completed'}
+      </Badge>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,7 +201,7 @@ export default function Dashboard() {
             </div>
             
             <div className="flex flex-wrap gap-4">
-              {steps.map((step, index) => (
+              {steps.map((step) => (
                 <div
                   key={step.id}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm ${
@@ -189,12 +224,24 @@ export default function Dashboard() {
 
         {/* Assessment Cards */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Career Assessments</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Career Assessments</h2>
+            {assessmentProgress > 0 && assessmentProgress < 100 && (
+              <Badge variant="secondary" className="gap-1">
+                {Math.round(assessmentProgress)}% Complete
+              </Badge>
+            )}
+            {assessmentProgress === 100 && (
+              <CompletionBadge completed={true} label="All Complete" />
+            )}
+          </div>
           <div className="grid md:grid-cols-2 gap-4">
             {assessments.map((assessment, index) => (
               <Link key={assessment.id} to={assessment.href}>
                 <Card 
-                  className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up"
+                  className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
+                    assessment.completed ? 'border-success/30' : ''
+                  }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <CardContent className="p-6 flex items-start gap-4">
@@ -206,16 +253,16 @@ export default function Dashboard() {
                       }`} />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-1 gap-2">
                         <h3 className="font-semibold">{assessment.title}</h3>
-                        {assessment.completed && (
-                          <CheckCircle2 className="h-5 w-5 text-success" />
-                        )}
+                        <CompletionBadge completed={assessment.completed} />
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
                         {assessment.description}
                       </p>
-                      <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 transition-all">
+                      <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                        assessment.completed ? 'text-success' : 'text-primary'
+                      }`}>
                         {assessment.completed ? 'View Results' : 'Start Assessment'}
                         <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </div>
@@ -230,18 +277,28 @@ export default function Dashboard() {
         {/* Career Explorer & Resume Section */}
         <div className="grid md:grid-cols-2 gap-4">
           <Link to="/careers">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <Card 
+              className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
+                hasExploredCareers ? 'border-success/30' : ''
+              }`} 
+              style={{ animationDelay: '0.2s' }}
+            >
               <CardContent className="p-6 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Briefcase className="h-6 w-6 text-primary" />
+                <div className={`p-3 rounded-xl ${hasExploredCareers ? 'bg-success/10' : 'bg-primary/10'}`}>
+                  <Briefcase className={`h-6 w-6 ${hasExploredCareers ? 'text-success' : 'text-primary'}`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Explore Careers</h3>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold">Explore Careers</h3>
+                    <CompletionBadge completed={hasExploredCareers} label="Explored" />
+                  </div>
                   <p className="text-sm text-muted-foreground mb-3">
                     Search O*NET careers and get personalized recommendations
                   </p>
-                  <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 transition-all">
-                    Explore Now
+                  <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                    hasExploredCareers ? 'text-success' : 'text-primary'
+                  }`}>
+                    {hasExploredCareers ? 'Continue Exploring' : 'Explore Now'}
                     <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -250,18 +307,28 @@ export default function Dashboard() {
           </Link>
 
           <Link to="/resume">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up" style={{ animationDelay: '0.25s' }}>
+            <Card 
+              className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
+                hasResume ? 'border-success/30' : ''
+              }`} 
+              style={{ animationDelay: '0.25s' }}
+            >
               <CardContent className="p-6 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-secondary">
-                  <FileText className="h-6 w-6 text-secondary-foreground" />
+                <div className={`p-3 rounded-xl ${hasResume ? 'bg-success/10' : 'bg-secondary'}`}>
+                  <FileText className={`h-6 w-6 ${hasResume ? 'text-success' : 'text-secondary-foreground'}`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Upload Resume</h3>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold">Upload Resume</h3>
+                    <CompletionBadge completed={hasResume} label="Uploaded" />
+                  </div>
                   <p className="text-sm text-muted-foreground mb-3">
                     Upload your resume for personalized insights
                   </p>
-                  <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 transition-all">
-                    Upload Now
+                  <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                    hasResume ? 'text-success' : 'text-primary'
+                  }`}>
+                    {hasResume ? 'View Resume' : 'Upload Now'}
                     <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -272,19 +339,29 @@ export default function Dashboard() {
 
         {/* Podcast Section */}
         <Link to="/podcast">
-          <Card className="hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 border-dashed animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <Card 
+            className={`hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 ${
+              hasPodcasts ? 'border-success/30' : 'border-dashed'
+            } animate-slide-up`} 
+            style={{ animationDelay: '0.3s' }}
+          >
             <CardContent className="p-6 flex items-start gap-4">
-              <div className="p-3 rounded-xl gradient-accent">
-                <Mic className="h-6 w-6 text-accent-foreground" />
+              <div className={`p-3 rounded-xl ${hasPodcasts ? 'bg-success/10' : 'gradient-accent'}`}>
+                <Mic className={`h-6 w-6 ${hasPodcasts ? 'text-success' : 'text-accent-foreground'}`} />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Generate Podcast</h3>
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <h3 className="font-semibold">Generate Podcast</h3>
+                  <CompletionBadge completed={hasPodcasts} label="Generated" />
+                </div>
                 <p className="text-sm text-muted-foreground mb-3">
                   Create your personalized 3-5 minute career podcast with AI
                 </p>
-                <div className="flex items-center text-sm text-accent font-medium group-hover:gap-2 transition-all">
+                <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                  hasPodcasts ? 'text-success' : 'text-accent'
+                }`}>
                   <Play className="h-4 w-4 mr-1" />
-                  Generate Now
+                  {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
                   <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
