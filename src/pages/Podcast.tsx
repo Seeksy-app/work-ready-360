@@ -39,6 +39,9 @@ export default function Podcast() {
   const [podcastReady, setPodcastReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [transcript, setTranscript] = useState<string>('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -71,16 +74,35 @@ export default function Podcast() {
     }
   };
 
-  // Simulate playback progress
+  // Audio playback progress
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying && progress < 100) {
-      interval = setInterval(() => {
-        setProgress(p => Math.min(p + 0.5, 100));
-      }, 100);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, progress]);
+    if (!audioElement) return;
+    
+    const handleTimeUpdate = () => {
+      if (audioElement.duration) {
+        setProgress((audioElement.currentTime / audioElement.duration) * 100);
+      }
+    };
+    
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(100);
+    };
+    
+    const handleLoadedMetadata = () => {
+      setAudioDuration(audioElement.duration);
+    };
+    
+    audioElement.addEventListener('timeupdate', handleTimeUpdate);
+    audioElement.addEventListener('ended', handleEnded);
+    audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    
+    return () => {
+      audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+      audioElement.removeEventListener('ended', handleEnded);
+      audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [audioElement]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,21 +149,111 @@ export default function Podcast() {
     
     setIsGenerating(true);
     
-    // Simulate podcast generation - will be replaced with actual ElevenLabs integration
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsGenerating(false);
-    setPodcastReady(true);
-    toast.success('Your podcast is ready!');
+    try {
+      // Fetch user's assessment results for personalization
+      let userInterests: string[] = [];
+      let userValues: string[] = [];
+      
+      if (user) {
+        const [interestResult, valuesResult] = await Promise.all([
+          supabase
+            .from('interest_profiler_results')
+            .select('top_interests')
+            .eq('user_id', user.id)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .single(),
+          supabase
+            .from('work_importance_results')
+            .select('top_values')
+            .eq('user_id', user.id)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .single()
+        ]);
+        
+        userInterests = interestResult.data?.top_interests || [];
+        userValues = valuesResult.data?.top_values || [];
+      }
+      
+      // Call the edge function to generate podcast
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            careerTitle: selectedCareer.title,
+            careerDescription: selectedCareer.description || '',
+            whatTheyDo: selectedCareer.what_they_do,
+            skills: selectedCareer.skills?.slice(0, 5).map((s) => s.name) || [],
+            knowledge: selectedCareer.knowledge?.slice(0, 3).map((k) => k.name) || [],
+            outlook: selectedCareer.outlook?.description,
+            salary: selectedCareer.outlook?.salary,
+            userInterests,
+            userValues,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate podcast');
+      }
+      
+      // Create audio element with base64 data
+      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      const audio = new Audio(audioUrl);
+      setAudioElement(audio);
+      setTranscript(data.transcript || '');
+      
+      setPodcastReady(true);
+      toast.success('Your podcast is ready!');
+      
+    } catch (error: any) {
+      console.error('Podcast generation error:', error);
+      toast.error(error.message || 'Failed to generate podcast');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const formatTime = (percentage: number) => {
-    const totalSeconds = 240; // 4 minutes
-    const currentSeconds = Math.floor((percentage / 100) * totalSeconds);
-    const minutes = Math.floor(currentSeconds / 60);
-    const seconds = currentSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const handlePlayPause = () => {
+    if (!audioElement) return;
+    
+    if (isPlaying) {
+      audioElement.pause();
+    } else {
+      audioElement.play();
+    }
+    setIsPlaying(!isPlaying);
   };
+
+  const handleSeek = (delta: number) => {
+    if (!audioElement) return;
+    audioElement.currentTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + delta));
+  };
+
+  const handleDownload = () => {
+    if (!audioElement) return;
+    const link = document.createElement('a');
+    link.href = audioElement.src;
+    link.download = `career-podcast-${selectedCareer?.title?.replace(/\s+/g, '-').toLowerCase() || 'episode'}.mp3`;
+    link.click();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const currentTime = audioElement ? audioElement.currentTime : 0;
 
   if (authLoading) {
     return (
@@ -370,10 +482,10 @@ export default function Podcast() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatTime(progress)}</span>
+                    <span>{formatTime(currentTime)}</span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      4:00
+                      {formatTime(audioDuration)}
                     </span>
                   </div>
                 </div>
@@ -384,7 +496,7 @@ export default function Podcast() {
                     variant="outline"
                     size="icon"
                     className="h-12 w-12 rounded-full"
-                    onClick={() => setProgress(Math.max(0, progress - 10))}
+                    onClick={() => handleSeek(-10)}
                   >
                     <span className="text-xs font-medium">-10s</span>
                   </Button>
@@ -393,7 +505,7 @@ export default function Podcast() {
                     variant="accent"
                     size="icon"
                     className="h-16 w-16 rounded-full shadow-lg"
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={handlePlayPause}
                   >
                     {isPlaying ? (
                       <Pause className="h-8 w-8" />
@@ -406,7 +518,7 @@ export default function Podcast() {
                     variant="outline"
                     size="icon"
                     className="h-12 w-12 rounded-full"
-                    onClick={() => setProgress(Math.min(100, progress + 10))}
+                    onClick={() => handleSeek(10)}
                   >
                     <span className="text-xs font-medium">+10s</span>
                   </Button>
@@ -414,17 +526,39 @@ export default function Podcast() {
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 border-t">
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={handleDownload}>
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={() => {
+                    navigator.share?.({
+                      title: `Career Podcast: ${selectedCareer?.title}`,
+                      text: `Check out this career podcast about ${selectedCareer?.title}`,
+                    }).catch(() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Link copied to clipboard!');
+                    });
+                  }}>
                     <Share2 className="h-4 w-4 mr-2" />
                     Share
                   </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Transcript */}
+            {transcript && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Transcript</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-48 overflow-y-auto text-sm text-muted-foreground whitespace-pre-wrap">
+                    {transcript}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Generate Another */}
             <Card>
@@ -433,11 +567,14 @@ export default function Podcast() {
                   variant="ghost"
                   className="w-full"
                   onClick={() => {
+                    audioElement?.pause();
+                    setAudioElement(null);
                     setPodcastReady(false);
                     setProgress(0);
                     setIsPlaying(false);
                     setSelectedCareer(null);
                     setJobSearch('');
+                    setTranscript('');
                   }}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
