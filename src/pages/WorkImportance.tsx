@@ -9,40 +9,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ArrowRight, Heart, CheckCircle2 } from 'lucide-react';
-
-// O*NET Work Importance Locator questions
-const workImportanceQuestions = [
-  // Achievement
-  { id: 1, text: "I want a job where I can try out my own ideas", category: "Achievement" },
-  { id: 2, text: "I want a job where I can make use of my abilities", category: "Achievement" },
-  { id: 3, text: "I want a job where I can see the results of my work", category: "Achievement" },
-  { id: 4, text: "I want a job that gives me a feeling of accomplishment", category: "Achievement" },
-  // Working Conditions
-  { id: 5, text: "I want a job where I am busy all the time", category: "Working Conditions" },
-  { id: 6, text: "I want a job with good working conditions", category: "Working Conditions" },
-  { id: 7, text: "I want a job with enough time for my family", category: "Working Conditions" },
-  { id: 8, text: "I want a job where I can work on my own", category: "Working Conditions" },
-  // Recognition
-  { id: 9, text: "I want a job where I get recognition for the work I do", category: "Recognition" },
-  { id: 10, text: "I want a job where I can give directions to others", category: "Recognition" },
-  { id: 11, text: "I want a job where my coworkers respect me", category: "Recognition" },
-  { id: 12, text: "I want a job that provides advancement opportunities", category: "Recognition" },
-  // Relationships
-  { id: 13, text: "I want a job where I can do things for other people", category: "Relationships" },
-  { id: 14, text: "I want a job where my coworkers are friendly", category: "Relationships" },
-  { id: 15, text: "I want a job where I can work as part of a team", category: "Relationships" },
-  { id: 16, text: "I want a job where I am not asked to do anything that goes against my morals", category: "Relationships" },
-  // Support
-  { id: 17, text: "I want a job with supervisors who back up their workers", category: "Support" },
-  { id: 18, text: "I want a job with supervisors who train workers well", category: "Support" },
-  { id: 19, text: "I want a job with a company that treats employees fairly", category: "Support" },
-  { id: 20, text: "I want a job that offers steady employment", category: "Support" },
-  // Independence
-  { id: 21, text: "I want a job where I can plan my work without much supervision", category: "Independence" },
-  { id: 22, text: "I want a job where I can make decisions on my own", category: "Independence" },
-  { id: 23, text: "I want a job where I can do things my own way", category: "Independence" },
-  { id: 24, text: "I want a job where I am responsible for my work", category: "Independence" },
-];
+import { 
+  WIP_ITEMS, 
+  WORK_VALUES,
+  WORK_VALUE_LABELS,
+  WORK_VALUE_DESCRIPTIONS,
+  scoreWipRatingsOnly,
+  WorkValue,
+  ValueScore 
+} from '@/lib/wip';
 
 const responseOptions = [
   { value: "1", label: "Not Important" },
@@ -52,25 +27,16 @@ const responseOptions = [
   { value: "5", label: "Most Important" },
 ];
 
-const categoryDescriptions: Record<string, string> = {
-  Achievement: "Occupations that let you use your best abilities and give a sense of accomplishment",
-  "Working Conditions": "Occupations with good working conditions, job security, and work-life balance",
-  Recognition: "Occupations that provide advancement, leadership, and respect from others",
-  Relationships: "Occupations with friendly coworkers, teamwork, and helping others",
-  Support: "Occupations with supportive supervisors and fair company policies",
-  Independence: "Occupations that allow you to work autonomously and make your own decisions",
-};
-
 const QUESTIONS_PER_PAGE = 4;
 
 export default function WorkImportance() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
-  const [responses, setResponses] = useState<Record<number, string>>({});
+  const [responses, setResponses] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [results, setResults] = useState<{ category: string; score: number }[]>([]);
+  const [results, setResults] = useState<{ value: WorkValue; score: ValueScore }[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -78,66 +44,69 @@ export default function WorkImportance() {
     }
   }, [user, authLoading, navigate]);
 
-  const totalPages = Math.ceil(workImportanceQuestions.length / QUESTIONS_PER_PAGE);
+  const totalPages = Math.ceil(WIP_ITEMS.length / QUESTIONS_PER_PAGE);
   const startIndex = currentPage * QUESTIONS_PER_PAGE;
-  const currentQuestions = workImportanceQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
-  const progress = (Object.keys(responses).length / workImportanceQuestions.length) * 100;
+  const currentQuestions = WIP_ITEMS.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
+  const progress = (Object.keys(responses).length / WIP_ITEMS.length) * 100;
 
-  const allCurrentAnswered = currentQuestions.every(q => responses[q.id]);
-  const allAnswered = Object.keys(responses).length === workImportanceQuestions.length;
-
-  const calculateScores = () => {
-    const scores: Record<string, number> = {
-      Achievement: 0,
-      "Working Conditions": 0,
-      Recognition: 0,
-      Relationships: 0,
-      Support: 0,
-      Independence: 0,
-    };
-    
-    Object.entries(responses).forEach(([id, value]) => {
-      const question = workImportanceQuestions.find(q => q.id === parseInt(id));
-      if (question) {
-        scores[question.category] += parseInt(value);
-      }
-    });
-
-    return Object.entries(scores)
-      .map(([category, score]) => ({ category, score }))
-      .sort((a, b) => b.score - a.score);
-  };
+  const allCurrentAnswered = currentQuestions.every(q => responses[q.item_id] !== undefined);
+  const allAnswered = Object.keys(responses).length === WIP_ITEMS.length;
 
   const handleSubmit = async () => {
     if (!user) return;
     
     setIsSubmitting(true);
-    const scores = calculateScores();
-    const topValues = scores.slice(0, 3).map(s => s.category);
     
-    const scoresObj = scores.reduce((acc, s) => {
-      acc[s.category] = s.score;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const { error } = await supabase
-      .from('work_importance_results')
-      .insert({
+    try {
+      // Use the new scoring algorithm
+      const scoreResult = scoreWipRatingsOnly({
+        response_id: crypto.randomUUID(),
         user_id: user.id,
-        responses: responses,
-        scores: scoresObj,
-        top_values: topValues,
+        items: WIP_ITEMS,
+        ratings: responses,
       });
+      
+      // Format results for display (sorted by normalized score)
+      const sortedResults = scoreResult.rank_order.map(r => ({
+        value: r.work_value,
+        score: scoreResult.value_scores[r.work_value],
+      }));
+      
+      // Prepare data for database (using display-friendly labels for top_values)
+      const topValues = sortedResults.slice(0, 3).map(r => WORK_VALUE_LABELS[r.value]);
+      
+      // Store both normalized scores and raw scores
+      const scoresObj: Record<string, number> = {};
+      const normalizedScoresObj: Record<string, number> = {};
+      
+      for (const v of WORK_VALUES) {
+        const displayLabel = WORK_VALUE_LABELS[v];
+        scoresObj[displayLabel] = Math.round(scoreResult.value_scores[v].raw * 100) / 100;
+        normalizedScoresObj[displayLabel] = Math.round(scoreResult.value_scores[v].normalized);
+      }
 
-    setIsSubmitting(false);
+      const { error } = await supabase
+        .from('work_importance_results')
+        .insert({
+          user_id: user.id,
+          responses: responses,
+          scores: normalizedScoresObj, // Store normalized 0-100 scores
+          top_values: topValues,
+        });
 
-    if (error) {
-      toast.error('Failed to save results. Please try again.');
-      console.error(error);
-    } else {
-      setResults(scores);
-      setIsComplete(true);
-      toast.success('Assessment complete!');
+      if (error) {
+        toast.error('Failed to save results. Please try again.');
+        console.error(error);
+      } else {
+        setResults(sortedResults);
+        setIsComplete(true);
+        toast.success('Assessment complete!');
+      }
+    } catch (error) {
+      console.error('Scoring error:', error);
+      toast.error('Failed to calculate results. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -160,13 +129,13 @@ export default function WorkImportance() {
               </div>
               <CardTitle className="text-2xl">Assessment Complete!</CardTitle>
               <CardDescription>
-                Here are your Work Importance results
+                Here are your Work Importance results (normalized 0-100 scale)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 {results.map((result, index) => (
-                  <div key={result.category} className="space-y-2">
+                  <div key={result.value} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -174,13 +143,23 @@ export default function WorkImportance() {
                         }`}>
                           {index + 1}
                         </span>
-                        <span className="font-medium">{result.category}</span>
+                        <span className="font-medium">{WORK_VALUE_LABELS[result.value]}</span>
                       </div>
-                      <span className="text-sm text-muted-foreground">{result.score}/20</span>
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-semibold text-foreground">
+                          {Math.round(result.score.normalized)}
+                        </span>
+                        /100
+                        {result.score.z !== 0 && (
+                          <span className={`ml-2 text-xs ${result.score.z > 0 ? 'text-success' : 'text-muted-foreground'}`}>
+                            (z: {result.score.z > 0 ? '+' : ''}{result.score.z.toFixed(2)})
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <Progress value={(result.score / 20) * 100} className="h-2" />
+                    <Progress value={result.score.normalized} className="h-2" />
                     <p className="text-xs text-muted-foreground">
-                      {categoryDescriptions[result.category]}
+                      {WORK_VALUE_DESCRIPTIONS[result.value]}
                     </p>
                   </div>
                 ))}
@@ -190,8 +169,8 @@ export default function WorkImportance() {
                 <h4 className="font-semibold mb-2">Your Top Work Values:</h4>
                 <div className="flex flex-wrap gap-2">
                   {results.slice(0, 3).map(r => (
-                    <span key={r.category} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium">
-                      {r.category}
+                    <span key={r.value} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium">
+                      {WORK_VALUE_LABELS[r.value]}
                     </span>
                   ))}
                 </div>
@@ -249,27 +228,30 @@ export default function WorkImportance() {
               How important are these work values to you?
             </CardTitle>
             <CardDescription>
-              Questions {startIndex + 1} - {Math.min(startIndex + QUESTIONS_PER_PAGE, workImportanceQuestions.length)} of {workImportanceQuestions.length}
+              Questions {startIndex + 1} - {Math.min(startIndex + QUESTIONS_PER_PAGE, WIP_ITEMS.length)} of {WIP_ITEMS.length}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
             {currentQuestions.map((question) => (
-              <div key={question.id} className="space-y-3">
+              <div key={question.item_id} className="space-y-3">
                 <p className="font-medium">{question.text}</p>
                 <RadioGroup
-                  value={responses[question.id] || ''}
-                  onValueChange={(value) => setResponses(prev => ({ ...prev, [question.id]: value }))}
+                  value={responses[question.item_id]?.toString() || ''}
+                  onValueChange={(value) => setResponses(prev => ({ 
+                    ...prev, 
+                    [question.item_id]: parseInt(value) 
+                  }))}
                   className="flex flex-wrap gap-2"
                 >
                   {responseOptions.map((option) => (
                     <div key={option.value} className="flex items-center">
                       <RadioGroupItem
                         value={option.value}
-                        id={`q${question.id}-${option.value}`}
+                        id={`q${question.item_id}-${option.value}`}
                         className="peer sr-only"
                       />
                       <Label
-                        htmlFor={`q${question.id}-${option.value}`}
+                        htmlFor={`q${question.item_id}-${option.value}`}
                         className="px-3 py-2 rounded-lg border-2 cursor-pointer transition-all hover:border-accent/50 peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/10 text-sm"
                       >
                         {option.label}
