@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Loader2, 
@@ -22,19 +23,40 @@ import {
   Download,
   Share2,
   Star,
-  CheckCircle2
+  CheckCircle2,
+  User,
+  FileText,
+  Heart
 } from 'lucide-react';
+
+type PodcastType = 'profile' | 'career';
 
 export default function Podcast() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  // Podcast type state
+  const [podcastType, setPodcastType] = useState<PodcastType>('profile');
+  
+  // Career search state
   const [jobSearch, setJobSearch] = useState('');
   const [searchResults, setSearchResults] = useState<OnetCareer[]>([]);
   const [selectedCareer, setSelectedCareer] = useState<OnetCareerDetail | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingCareer, setIsLoadingCareer] = useState(false);
+  
+  // Profile data state
+  const [hasProfileData, setHasProfileData] = useState(false);
+  const [profileSummary, setProfileSummary] = useState<{
+    hasResume: boolean;
+    hasInterests: boolean;
+    hasValues: boolean;
+    topInterests: string[];
+    topValues: string[];
+  } | null>(null);
+  
+  // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [podcastReady, setPodcastReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,6 +64,7 @@ export default function Podcast() {
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [audioDuration, setAudioDuration] = useState(0);
   const [transcript, setTranscript] = useState<string>('');
+  const [generatedType, setGeneratedType] = useState<PodcastType>('profile');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -49,15 +72,68 @@ export default function Podcast() {
     }
   }, [user, authLoading, navigate]);
 
+  // Load user profile data for profile podcast
+  useEffect(() => {
+    if (user) {
+      loadProfileData();
+    }
+  }, [user]);
+
   // Load occupation from URL params
   useEffect(() => {
     const occupationCode = searchParams.get('occupation');
     const occupationTitle = searchParams.get('title');
     
     if (occupationCode) {
+      setPodcastType('career');
       loadCareerFromParams(occupationCode, occupationTitle || '');
     }
   }, [searchParams]);
+
+  const loadProfileData = async () => {
+    if (!user) return;
+    
+    try {
+      const [interestResult, valuesResult, resumeResult] = await Promise.all([
+        supabase
+          .from('interest_profiler_results')
+          .select('top_interests, scores')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase
+          .from('work_importance_results')
+          .select('top_values, scores')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase
+          .from('resumes')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single()
+      ]);
+      
+      const hasInterests = !!interestResult.data;
+      const hasValues = !!valuesResult.data;
+      const hasResume = !!resumeResult.data;
+      
+      setProfileSummary({
+        hasResume,
+        hasInterests,
+        hasValues,
+        topInterests: interestResult.data?.top_interests || [],
+        topValues: valuesResult.data?.top_values || [],
+      });
+      
+      setHasProfileData(hasInterests || hasValues);
+    } catch (error) {
+      console.error('Failed to load profile data:', error);
+    }
+  };
 
   const loadCareerFromParams = async (code: string, title: string) => {
     setIsLoadingCareer(true);
@@ -141,7 +217,117 @@ export default function Podcast() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerateProfile = async () => {
+    if (!user) {
+      toast.error('Please sign in to generate your podcast');
+      return;
+    }
+    
+    if (!hasProfileData) {
+      toast.error('Please complete at least one assessment first');
+      return;
+    }
+    
+    setIsGenerating(true);
+    
+    try {
+      // Fetch all user data
+      const [interestResult, valuesResult, resumeResult, profileResult] = await Promise.all([
+        supabase
+          .from('interest_profiler_results')
+          .select('top_interests, scores')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase
+          .from('work_importance_results')
+          .select('top_values, scores')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase
+          .from('resumes')
+          .select('parsed_content')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single()
+      ]);
+      
+      // Prepare request body
+      const requestBody: any = {
+        type: 'profile',
+        userName: profileResult.data?.full_name || 'our listener',
+      };
+      
+      if (interestResult.data) {
+        requestBody.interestProfilerResults = {
+          scores: interestResult.data.scores as Record<string, number>,
+          topInterests: interestResult.data.top_interests,
+        };
+      }
+      
+      if (valuesResult.data) {
+        requestBody.workImportanceResults = {
+          scores: valuesResult.data.scores as Record<string, number>,
+          topValues: valuesResult.data.top_values,
+        };
+      }
+      
+      if (resumeResult.data?.parsed_content) {
+        // Extract text from parsed resume content
+        const parsedContent = resumeResult.data.parsed_content as any;
+        requestBody.resumeContent = typeof parsedContent === 'string' 
+          ? parsedContent 
+          : JSON.stringify(parsedContent);
+      }
+      
+      // Call the edge function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate podcast');
+      }
+      
+      // Create audio element with base64 data
+      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      const audio = new Audio(audioUrl);
+      setAudioElement(audio);
+      setTranscript(data.transcript || '');
+      setGeneratedType('profile');
+      
+      setPodcastReady(true);
+      toast.success('Your career profile podcast is ready!');
+      
+    } catch (error: any) {
+      console.error('Podcast generation error:', error);
+      toast.error(error.message || 'Failed to generate podcast');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateCareer = async () => {
     if (!selectedCareer) {
       toast.error('Please select a career first');
       return;
@@ -176,7 +362,7 @@ export default function Podcast() {
         userValues = valuesResult.data?.top_values || [];
       }
       
-      // Call the edge function to generate podcast
+      // Call the edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
         {
@@ -187,6 +373,7 @@ export default function Podcast() {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
+            type: 'career',
             careerTitle: selectedCareer.title,
             careerDescription: selectedCareer.description || '',
             whatTheyDo: selectedCareer.what_they_do,
@@ -211,6 +398,7 @@ export default function Podcast() {
       const audio = new Audio(audioUrl);
       setAudioElement(audio);
       setTranscript(data.transcript || '');
+      setGeneratedType('career');
       
       setPodcastReady(true);
       toast.success('Your podcast is ready!');
@@ -243,7 +431,10 @@ export default function Podcast() {
     if (!audioElement) return;
     const link = document.createElement('a');
     link.href = audioElement.src;
-    link.download = `career-podcast-${selectedCareer?.title?.replace(/\s+/g, '-').toLowerCase() || 'episode'}.mp3`;
+    const title = generatedType === 'profile' 
+      ? 'my-career-profile' 
+      : selectedCareer?.title?.replace(/\s+/g, '-').toLowerCase() || 'episode';
+    link.download = `career-podcast-${title}.mp3`;
     link.click();
   };
 
@@ -254,6 +445,18 @@ export default function Podcast() {
   };
 
   const currentTime = audioElement ? audioElement.currentTime : 0;
+
+  const resetPodcast = () => {
+    audioElement?.pause();
+    setAudioElement(null);
+    setPodcastReady(false);
+    setProgress(0);
+    setIsPlaying(false);
+    setSelectedCareer(null);
+    setJobSearch('');
+    setTranscript('');
+    setSearchResults([]);
+  };
 
   if (authLoading) {
     return (
@@ -286,174 +489,304 @@ export default function Podcast() {
 
         {!podcastReady ? (
           <div className="space-y-6">
-            {/* Career Search/Selection */}
-            <Card className="animate-fade-in">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-accent" />
-                  Generate Your Podcast
-                </CardTitle>
-                <CardDescription>
-                  Search for a career or use one from your assessment results
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Search Form */}
-                <form onSubmit={handleSearch} className="space-y-2">
-                  <Label htmlFor="job-search">Search Careers</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="job-search"
-                        placeholder="e.g., Software Developer, Nurse, Marketing..."
-                        value={jobSearch}
-                        onChange={(e) => setJobSearch(e.target.value)}
-                        className="pl-10"
-                      />
+            <Tabs value={podcastType} onValueChange={(v) => setPodcastType(v as PodcastType)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="profile" className="gap-2">
+                  <User className="h-4 w-4" />
+                  My Profile
+                </TabsTrigger>
+                <TabsTrigger value="career" className="gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Specific Career
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Profile Podcast Tab */}
+              <TabsContent value="profile" className="space-y-6">
+                <Card className="animate-fade-in">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-accent" />
+                      Your Career Profile Podcast
+                    </CardTitle>
+                    <CardDescription>
+                      Get AI-generated career guidance based on your unique profile
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Profile Data Summary */}
+                    <div className="space-y-3">
+                      <Label>Your Profile Data</Label>
+                      <div className="grid gap-2">
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileSummary?.hasInterests ? 'bg-success/5 border-success/20' : 'bg-muted/50'}`}>
+                          <Heart className={`h-5 w-5 ${profileSummary?.hasInterests ? 'text-success' : 'text-muted-foreground'}`} />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Interest Profiler</p>
+                            {profileSummary?.hasInterests ? (
+                              <p className="text-xs text-muted-foreground">
+                                Top interests: {profileSummary.topInterests.slice(0, 3).join(', ')}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Not completed</p>
+                            )}
+                          </div>
+                          {profileSummary?.hasInterests ? (
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => navigate('/interest-profiler')}>
+                              Take Now
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileSummary?.hasValues ? 'bg-success/5 border-success/20' : 'bg-muted/50'}`}>
+                          <Star className={`h-5 w-5 ${profileSummary?.hasValues ? 'text-success' : 'text-muted-foreground'}`} />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Work Values</p>
+                            {profileSummary?.hasValues ? (
+                              <p className="text-xs text-muted-foreground">
+                                Top values: {profileSummary.topValues.slice(0, 3).join(', ')}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Not completed</p>
+                            )}
+                          </div>
+                          {profileSummary?.hasValues ? (
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => navigate('/work-importance')}>
+                              Take Now
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileSummary?.hasResume ? 'bg-success/5 border-success/20' : 'bg-muted/50'}`}>
+                          <FileText className={`h-5 w-5 ${profileSummary?.hasResume ? 'text-success' : 'text-muted-foreground'}`} />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Resume</p>
+                            <p className="text-xs text-muted-foreground">
+                              {profileSummary?.hasResume ? 'Uploaded' : 'Not uploaded (optional)'}
+                            </p>
+                          </div>
+                          {profileSummary?.hasResume ? (
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => navigate('/resume')}>
+                              Upload
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <Button type="submit" variant="outline" disabled={isSearching}>
-                      {isSearching ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+
+                    {/* What the podcast includes */}
+                    <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                      <h4 className="font-medium text-sm">Your AI-generated podcast will cover:</h4>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Your personality and work style insights
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Career paths that match your interests
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Work environments you'd thrive in
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Personalized career recommendations
+                        </li>
+                        {profileSummary?.hasResume && (
+                          <li className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                            Analysis of your experience & skills
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <Button
+                      variant="accent"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleGenerateProfile}
+                      disabled={isGenerating || !hasProfileData}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Generating your podcast...
+                        </>
                       ) : (
-                        <Search className="h-4 w-4" />
+                        <>
+                          <Sparkles className="h-5 w-5" />
+                          Generate My Career Profile Podcast
+                        </>
                       )}
                     </Button>
-                  </div>
-                </form>
 
-                {/* Search Results */}
-                {searchResults.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Select a Career</Label>
-                    <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                      {searchResults.map((career) => (
-                        <button
-                          key={career.code}
-                          onClick={() => handleSelectCareer(career)}
-                          className="w-full text-left p-2 rounded-md hover:bg-primary/5 transition-colors flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{career.title}</span>
-                          </div>
-                          {career.tags?.bright_outlook && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                              <Star className="h-3 w-3" />
-                              Bright
-                            </Badge>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Loading Career */}
-                {isLoadingCareer && (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                )}
-
-                {/* Selected Career */}
-                {selectedCareer && (
-                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                          {selectedCareer.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">{selectedCareer.code}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedCareer(null);
-                          setJobSearch('');
-                        }}
-                      >
-                        Change
-                      </Button>
-                    </div>
-                    {selectedCareer.what_they_do && (
-                      <p className="text-sm text-muted-foreground">
-                        {selectedCareer.what_they_do}
+                    {!hasProfileData && (
+                      <p className="text-center text-sm text-muted-foreground">
+                        Complete at least one assessment to generate your podcast
                       </p>
                     )}
-                  </div>
-                )}
 
-                {/* What the podcast includes */}
-                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
-                  <h4 className="font-medium text-sm">Your podcast will include:</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      How your interests align with this career
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Work values match analysis
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Key skills and knowledge needed
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Job outlook and salary information
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Personalized recommendations
-                    </li>
-                  </ul>
-                </div>
+                    {isGenerating && (
+                      <div className="text-center text-sm text-muted-foreground animate-pulse">
+                        This may take a minute. Our AI is crafting personalized content just for you...
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                <Button
-                  variant="accent"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !selectedCareer}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Generating your podcast...
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-5 w-5" />
-                      Generate Podcast
-                    </>
-                  )}
-                </Button>
+              {/* Career Podcast Tab */}
+              <TabsContent value="career" className="space-y-6">
+                <Card className="animate-fade-in">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-accent" />
+                      Career-Focused Podcast
+                    </CardTitle>
+                    <CardDescription>
+                      Learn about a specific career with personalized insights
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Search Form */}
+                    <form onSubmit={handleSearch} className="space-y-2">
+                      <Label htmlFor="job-search">Search Careers</Label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="job-search"
+                            placeholder="e.g., Software Developer, Nurse, Marketing..."
+                            value={jobSearch}
+                            onChange={(e) => setJobSearch(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        <Button type="submit" variant="outline" disabled={isSearching}>
+                          {isSearching ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </form>
 
-                {isGenerating && (
-                  <div className="text-center text-sm text-muted-foreground animate-pulse">
-                    This may take a minute. We're crafting personalized content just for you...
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    {/* Search Results */}
+                    {searchResults.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Select a Career</Label>
+                        <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
+                          {searchResults.map((career) => (
+                            <button
+                              key={career.code}
+                              onClick={() => handleSelectCareer(career)}
+                              className="w-full text-left p-2 rounded-md hover:bg-primary/5 transition-colors flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">{career.title}</span>
+                              </div>
+                              {career.tags?.bright_outlook && (
+                                <Badge variant="secondary" className="gap-1 text-xs">
+                                  <Star className="h-3 w-3" />
+                                  Bright
+                                </Badge>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-            {/* Browse Careers Link */}
-            <Card>
-              <CardContent className="p-4">
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => navigate('/careers')}
-                >
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  Browse All Careers with O*NET Data
-                </Button>
-              </CardContent>
-            </Card>
+                    {/* Loading Career */}
+                    {isLoadingCareer && (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+
+                    {/* Selected Career */}
+                    {selectedCareer && (
+                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                              {selectedCareer.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">{selectedCareer.code}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCareer(null);
+                              setJobSearch('');
+                            }}
+                          >
+                            Change
+                          </Button>
+                        </div>
+                        {selectedCareer.what_they_do && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedCareer.what_they_do}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <Button
+                      variant="accent"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleGenerateCareer}
+                      disabled={isGenerating || !selectedCareer}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Generating your podcast...
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-5 w-5" />
+                          Generate Career Podcast
+                        </>
+                      )}
+                    </Button>
+
+                    {isGenerating && (
+                      <div className="text-center text-sm text-muted-foreground animate-pulse">
+                        This may take a minute. We're crafting personalized content just for you...
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Browse Careers Link */}
+                <Card>
+                  <CardContent className="p-4">
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => navigate('/careers')}
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Browse All Careers with O*NET Data
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           /* Podcast Player */
@@ -461,14 +794,27 @@ export default function Podcast() {
             <Card className="overflow-hidden">
               <div className="gradient-hero p-8 text-center">
                 <div className="w-24 h-24 rounded-2xl gradient-accent flex items-center justify-center mx-auto mb-4 shadow-xl">
-                  <Mic className="h-12 w-12 text-accent-foreground" />
+                  {generatedType === 'profile' ? (
+                    <User className="h-12 w-12 text-accent-foreground" />
+                  ) : (
+                    <Mic className="h-12 w-12 text-accent-foreground" />
+                  )}
                 </div>
                 <h2 className="text-xl font-bold text-primary-foreground mb-1">
-                  Your Career Podcast
+                  {generatedType === 'profile' ? 'Your Career Profile' : 'Career Spotlight'}
                 </h2>
                 <p className="text-primary-foreground/70 flex items-center justify-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  {selectedCareer?.title || jobSearch}
+                  {generatedType === 'profile' ? (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      AI-Generated Personal Guidance
+                    </>
+                  ) : (
+                    <>
+                      <Briefcase className="h-4 w-4" />
+                      {selectedCareer?.title || jobSearch}
+                    </>
+                  )}
                 </p>
               </div>
               
@@ -532,8 +878,10 @@ export default function Podcast() {
                   </Button>
                   <Button variant="outline" className="flex-1" onClick={() => {
                     navigator.share?.({
-                      title: `Career Podcast: ${selectedCareer?.title}`,
-                      text: `Check out this career podcast about ${selectedCareer?.title}`,
+                      title: generatedType === 'profile' ? 'My Career Profile Podcast' : `Career Podcast: ${selectedCareer?.title}`,
+                      text: generatedType === 'profile' 
+                        ? 'Check out my personalized career guidance podcast!'
+                        : `Check out this career podcast about ${selectedCareer?.title}`,
                     }).catch(() => {
                       navigator.clipboard.writeText(window.location.href);
                       toast.success('Link copied to clipboard!');
@@ -566,16 +914,7 @@ export default function Podcast() {
                 <Button
                   variant="ghost"
                   className="w-full"
-                  onClick={() => {
-                    audioElement?.pause();
-                    setAudioElement(null);
-                    setPodcastReady(false);
-                    setProgress(0);
-                    setIsPlaying(false);
-                    setSelectedCareer(null);
-                    setJobSearch('');
-                    setTranscript('');
-                  }}
+                  onClick={resetPodcast}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate Another Podcast
