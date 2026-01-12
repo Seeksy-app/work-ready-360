@@ -10,9 +10,24 @@ const corsHeaders = {
 const HOST_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George - professional male host
 const GUEST_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah - engaging female co-host
 
-interface PodcastRequest {
+interface ProfilePodcastRequest {
+  type: 'profile';
+  userName?: string;
+  resumeContent?: string;
+  interestProfilerResults?: {
+    scores: Record<string, number>;
+    topInterests: string[];
+  };
+  workImportanceResults?: {
+    scores: Record<string, number>;
+    topValues: string[];
+  };
+}
+
+interface CareerPodcastRequest {
+  type: 'career';
   careerTitle: string;
-  careerDescription: string;
+  careerDescription?: string;
   whatTheyDo?: string;
   skills?: string[];
   knowledge?: string[];
@@ -21,6 +36,8 @@ interface PodcastRequest {
   userInterests?: string[];
   userValues?: string[];
 }
+
+type PodcastRequest = ProfilePodcastRequest | CareerPodcastRequest;
 
 async function generateTTS(text: string, voiceId: string, apiKey: string): Promise<ArrayBuffer> {
   console.log(`Generating TTS for voice ${voiceId}, text length: ${text.length}`);
@@ -55,10 +72,136 @@ async function generateTTS(text: string, voiceId: string, apiKey: string): Promi
   return await response.arrayBuffer();
 }
 
-function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 'guest'; text: string }> {
+async function generateAIScript(data: ProfilePodcastRequest): Promise<Array<{ speaker: 'host' | 'guest'; text: string }>> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY is not configured');
+  }
+
+  const systemPrompt = `You are a podcast script writer for "Career Spotlight", a two-person career guidance podcast.
+You write engaging, conversational dialogue between a Host (professional male) and Co-host (enthusiastic female expert).
+
+CRITICAL RULES:
+1. Output ONLY valid JSON - an array of objects with "speaker" ("host" or "guest") and "text" (the dialogue)
+2. Keep each speech segment to 2-4 sentences max (for natural audio generation)
+3. Make it warm, encouraging, and personalized
+4. Total script should be 8-12 segments (4-6 exchanges)
+5. No markdown, no code blocks, just the JSON array
+6. Avoid overly formal or stiff language - be conversational
+
+Example format:
+[
+  {"speaker": "host", "text": "Welcome to Career Spotlight! Today we have something special..."},
+  {"speaker": "guest", "text": "That's right! We're going to talk about..."}
+]`;
+
+  let userPrompt = `Create a personalized career profile podcast episode for ${data.userName || 'our listener'}.
+
+Here's what we know about them:
+
+`;
+
+  if (data.interestProfilerResults) {
+    userPrompt += `**Interest Profiler Results (RIASEC):**
+Top Interests: ${data.interestProfilerResults.topInterests.join(', ')}
+Scores: ${JSON.stringify(data.interestProfilerResults.scores)}
+
+`;
+  }
+
+  if (data.workImportanceResults) {
+    userPrompt += `**Work Values/Importance Results:**
+Top Values: ${data.workImportanceResults.topValues.join(', ')}
+Scores: ${JSON.stringify(data.workImportanceResults.scores)}
+
+`;
+  }
+
+  if (data.resumeContent) {
+    userPrompt += `**Resume Summary:**
+${data.resumeContent.slice(0, 2000)}
+
+`;
+  }
+
+  userPrompt += `Create an engaging podcast script that:
+1. Welcomes the listener personally
+2. Discusses their interest profile and what it reveals about them
+3. Connects their work values to potential career paths
+4. If resume provided, highlights their experience and how it fits
+5. Offers encouraging, actionable career guidance
+6. Ends with motivation and next steps
+
+Remember: Output ONLY the JSON array, nothing else.`;
+
+  console.log("Calling Lovable AI for script generation...");
+  
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI API error:", response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again in a moment.");
+    }
+    if (response.status === 402) {
+      throw new Error("AI credits exhausted. Please add credits to continue.");
+    }
+    throw new Error(`AI API error: ${response.status}`);
+  }
+
+  const aiResponse = await response.json();
+  const content = aiResponse.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    throw new Error("No content received from AI");
+  }
+
+  console.log("AI response received, parsing script...");
+  
+  // Parse the JSON response - handle potential markdown wrapping
+  let scriptText = content.trim();
+  if (scriptText.startsWith("```json")) {
+    scriptText = scriptText.slice(7);
+  }
+  if (scriptText.startsWith("```")) {
+    scriptText = scriptText.slice(3);
+  }
+  if (scriptText.endsWith("```")) {
+    scriptText = scriptText.slice(0, -3);
+  }
+  scriptText = scriptText.trim();
+
+  try {
+    const script = JSON.parse(scriptText);
+    if (!Array.isArray(script)) {
+      throw new Error("Script is not an array");
+    }
+    return script;
+  } catch (parseError) {
+    console.error("Failed to parse AI script:", parseError, "Content:", scriptText.slice(0, 500));
+    throw new Error("Failed to parse AI-generated script");
+  }
+}
+
+function generateCareerScript(data: CareerPodcastRequest): Array<{ speaker: 'host' | 'guest'; text: string }> {
   const script: Array<{ speaker: 'host' | 'guest'; text: string }> = [];
   
-  // Introduction
   script.push({
     speaker: 'host',
     text: `Welcome to Career Spotlight! I'm your host, and today we're diving deep into an exciting career path: ${data.careerTitle}. I've got my co-host here to help break it all down.`
@@ -69,7 +212,6 @@ function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 
     text: `Thanks! I'm really excited about this one. ${data.careerTitle} is such a fascinating field, and there's so much to explore here.`
   });
 
-  // What they do
   if (data.whatTheyDo) {
     script.push({
       speaker: 'host',
@@ -82,7 +224,6 @@ function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 
     });
   }
 
-  // Skills section
   if (data.skills && data.skills.length > 0) {
     const topSkills = data.skills.slice(0, 4).join(', ');
     script.push({
@@ -96,21 +237,6 @@ function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 
     });
   }
 
-  // Knowledge areas
-  if (data.knowledge && data.knowledge.length > 0) {
-    const topKnowledge = data.knowledge.slice(0, 3).join(', ');
-    script.push({
-      speaker: 'host',
-      text: `And what about the educational background or knowledge areas?`
-    });
-    
-    script.push({
-      speaker: 'guest',
-      text: `You'll want to have a strong foundation in ${topKnowledge}. This knowledge base will really set you up for success.`
-    });
-  }
-
-  // User personalization - interests
   if (data.userInterests && data.userInterests.length > 0) {
     const interests = data.userInterests.slice(0, 3).join(', ');
     script.push({
@@ -124,7 +250,6 @@ function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 
     });
   }
 
-  // User personalization - values
   if (data.userValues && data.userValues.length > 0) {
     const values = data.userValues.slice(0, 3).join(', ');
     script.push({
@@ -138,28 +263,6 @@ function generatePodcastScript(data: PodcastRequest): Array<{ speaker: 'host' | 
     });
   }
 
-  // Salary and outlook
-  if (data.salary?.annual_median || data.outlook) {
-    script.push({
-      speaker: 'host',
-      text: `Let's talk numbers and future prospects. What can people expect?`
-    });
-    
-    let outlookText = "";
-    if (data.salary?.annual_median) {
-      outlookText += `The median salary is around $${data.salary.annual_median.toLocaleString()} per year. `;
-    }
-    if (data.outlook) {
-      outlookText += `As for the job outlook: ${data.outlook}`;
-    }
-    
-    script.push({
-      speaker: 'guest',
-      text: outlookText || "The job market for this field continues to evolve with new opportunities emerging."
-    });
-  }
-
-  // Closing
   script.push({
     speaker: 'host',
     text: `This has been incredibly insightful. Any final thoughts for someone considering this career?`
@@ -190,16 +293,27 @@ serve(async (req) => {
     }
 
     const data: PodcastRequest = await req.json();
-    console.log("Generating podcast for:", data.careerTitle);
+    console.log("Generating podcast, type:", data.type || 'career');
 
-    // Generate the script
-    const script = generatePodcastScript(data);
+    // Generate the script based on type
+    let script: Array<{ speaker: 'host' | 'guest'; text: string }>;
+    
+    if (data.type === 'profile') {
+      console.log("Generating AI-powered profile podcast...");
+      script = await generateAIScript(data);
+    } else {
+      console.log("Generating career-focused podcast for:", (data as CareerPodcastRequest).careerTitle);
+      script = generateCareerScript(data as CareerPodcastRequest);
+    }
+    
     console.log(`Script has ${script.length} segments`);
 
     // Generate audio for each segment
     const audioSegments: ArrayBuffer[] = [];
     
-    for (const segment of script) {
+    for (let i = 0; i < script.length; i++) {
+      const segment = script[i];
+      console.log(`Generating audio segment ${i + 1}/${script.length}...`);
       const voiceId = segment.speaker === 'host' ? HOST_VOICE_ID : GUEST_VOICE_ID;
       const audio = await generateTTS(segment.text, voiceId, ELEVENLABS_API_KEY);
       audioSegments.push(audio);
@@ -233,7 +347,7 @@ serve(async (req) => {
         success: true,
         audioContent: audioBase64,
         transcript,
-        duration: Math.round(totalLength / 16000), // Rough estimate
+        duration: Math.round(totalLength / 16000),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
