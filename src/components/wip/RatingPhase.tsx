@@ -1,4 +1,4 @@
-import { WipItem } from '@/lib/wip';
+import type { WipItemConfig } from '@/lib/wip/itemCatalog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
