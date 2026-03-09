@@ -97,15 +97,6 @@ export default function Admin() {
     { title: 'Assessments Completed', value: stats.completedAssessments, icon: Target, color: 'text-primary' },
   ];
 
-  // Mock recent users data
-  const recentUsers = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'user', status: 'active' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user', status: 'active' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'user', status: 'pending' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'admin', status: 'active' },
-    { id: 5, name: 'Chris Brown', email: 'chris@example.com', role: 'user', status: 'active' },
-  ];
-
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
@@ -125,6 +116,13 @@ export default function Admin() {
               <p className="text-muted-foreground">Manage users and view platform statistics</p>
             </div>
           </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="mb-8">
+          <Button variant="outline" onClick={() => navigate('/admin/wip')} className="mr-3">
+            <Target className="h-4 w-4 mr-2" />WIP Sessions
+          </Button>
         </div>
 
         {/* Stats Grid */}
