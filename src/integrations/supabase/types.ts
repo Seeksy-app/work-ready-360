@@ -299,7 +299,9 @@ export type Database = {
           consistency_score: number | null
           created_at: string
           id: string
+          is_demo: boolean | null
           result_payload: Json | null
+          source: string | null
           status: string
           top_scale_1: string | null
           top_scale_2: string | null
@@ -313,7 +315,9 @@ export type Database = {
           consistency_score?: number | null
           created_at?: string
           id?: string
+          is_demo?: boolean | null
           result_payload?: Json | null
+          source?: string | null
           status?: string
           top_scale_1?: string | null
           top_scale_2?: string | null
@@ -327,7 +331,9 @@ export type Database = {
           consistency_score?: number | null
           created_at?: string
           id?: string
+          is_demo?: boolean | null
           result_payload?: Json | null
+          source?: string | null
           status?: string
           top_scale_1?: string | null
           top_scale_2?: string | null
