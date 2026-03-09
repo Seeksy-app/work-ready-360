@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ArrowRight, Briefcase, RefreshCw, Heart, ChevronDown, ChevronUp } from 'lucide-react';
-import { WORK_VALUE_DESCRIPTIONS, WORK_VALUE_LABELS, WorkValue } from '@/lib/wip';
+import { SCALE_MAP } from '@/lib/wip';
 
 interface MatchingCareer {
   occupation_code: string;

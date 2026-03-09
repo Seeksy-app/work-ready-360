@@ -1,10 +1,10 @@
-import { WipItem } from '@/lib/wip';
 import { Button } from '@/components/ui/button';
+import type { WipItemConfig } from '@/lib/wip/itemCatalog';
 
 interface PreferencesPhaseProps {
-  items: WipItem[];
-  preferences: Record<string, boolean>;
-  onPreferenceChange: (itemId: string, value: boolean) => void;
+  items: WipItemConfig[];
+  preferences: Record<number, boolean>;
+  onPreferenceChange: (itemId: number, value: boolean) => void;
 }
 
 export default function PreferencesPhase({ items, preferences, onPreferenceChange }: PreferencesPhaseProps) {
@@ -18,32 +18,17 @@ export default function PreferencesPhase({ items, preferences, onPreferenceChang
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map((item) => {
-          const selected = preferences[item.item_id];
+          const selected = preferences[item.id];
           return (
-            <div
-              key={item.item_id}
-              className="rounded-lg border border-border p-4 space-y-3 bg-card"
-            >
+            <div key={item.id} className="rounded-lg border border-border p-4 space-y-3 bg-card">
               <p className="text-sm font-medium leading-snug">
-                For my IDEAL JOB it is important that: {item.text}
+                For my IDEAL JOB it is important that: {item.statement}
               </p>
               <div className="flex gap-3">
-                <Button
-                  variant={selected === true ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => onPreferenceChange(item.item_id, true)}
-                >
-                  Yes
-                </Button>
-                <Button
-                  variant={selected === false ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => onPreferenceChange(item.item_id, false)}
-                >
-                  No
-                </Button>
+                <Button variant={selected === true ? "default" : "outline"} size="sm" className="flex-1"
+                  onClick={() => onPreferenceChange(item.id, true)}>Yes</Button>
+                <Button variant={selected === false ? "default" : "outline"} size="sm" className="flex-1"
+                  onClick={() => onPreferenceChange(item.id, false)}>No</Button>
               </div>
             </div>
           );
