@@ -545,3 +545,80 @@ export function convertLegacyScores(
   }
   return result;
 }
+
+/**
+ * PREFERENCE_WEIGHT controls the absolute-scale adjustment from Yes/No preferences.
+ * Derived from MIQ MRO5 scoring: keeps combined need scores in approx [-2.5, +2.5] range.
+ */
+const PREFERENCE_WEIGHT = 0.538;
+
+/**
+ * Score the WIP using the official O*NET MRO5-based method:
+ * 1. Ranking phase: 21 rounds × 5 items. Each item appears 5 times.
+ *    Per round, items ranked 1 (most) to 5 (least).
+ *    Ranking score per item = mean of (3 - rank) across all rounds.
+ *    Range: [-2, +2]
+ * 2. Preferences phase: Yes/No for each of 21 items.
+ *    Adjusts the ipsative ranking score to an absolute scale.
+ *    Combined need score = ranking_avg + PREFERENCE_WEIGHT * (yes ? 1 : -1)
+ *    Range: approx [-2.538, +2.538]
+ * 3. Value score = mean of need scores within that value.
+ */
+export function scoreWipOfficial(params: {
+  response_id: string;
+  user_id: string;
+  roundRankings: Record<number, Record<string, number>>;
+  preferences: Record<string, boolean>;
+}): WipFullResult {
+  const { response_id, user_id, roundRankings, preferences } = params;
+
+  // Step 1: Compute average ranking score per item
+  const itemRankingSums: Record<string, number[]> = {};
+  for (const roundIdx in roundRankings) {
+    const rankings = roundRankings[roundIdx];
+    for (const itemId in rankings) {
+      if (!itemRankingSums[itemId]) itemRankingSums[itemId] = [];
+      // Convert rank to score: rank 1 → +2, rank 2 → +1, rank 3 → 0, rank 4 → -1, rank 5 → -2
+      itemRankingSums[itemId].push(3 - rankings[itemId]);
+    }
+  }
+
+  // Step 2: Compute combined need scores
+  const need_scores: NeedScore[] = WIP_ITEMS.map(item => {
+    const scores = itemRankingSums[item.item_id] || [];
+    const ranking_avg = scores.length > 0 ? mean(scores) : 0;
+    const pref = preferences[item.item_id] ?? false;
+    const combined = ranking_avg + PREFERENCE_WEIGHT * (pref ? 1 : -1);
+
+    return {
+      item_id: item.item_id,
+      work_need: item.work_need,
+      work_value: item.work_value,
+      ranking_avg,
+      preference: pref,
+      combined: Math.round(combined * 1000) / 1000, // 3 decimal places
+    };
+  });
+
+  // Sort needs by combined score descending
+  const sorted_needs = [...need_scores].sort((a, b) => b.combined - a.combined);
+
+  // Step 3: Compute value scores (mean of constituent need scores)
+  const value_scores: Record<WorkValue, { score: number; needs: NeedScore[] }> = {} as any;
+  for (const v of WORK_VALUES) {
+    const needs = sorted_needs.filter(n => n.work_value === v);
+    const avg = needs.length > 0 ? mean(needs.map(n => n.combined)) : 0;
+    value_scores[v] = {
+      score: Math.round(avg * 1000) / 1000,
+      needs,
+    };
+  }
+
+  // Rank order values
+  const rank_order = WORK_VALUES
+    .map(v => ({ work_value: v, label: WORK_VALUE_LABELS[v], score: value_scores[v].score }))
+    .sort((a, b) => b.score - a.score);
+
+  return { response_id, user_id, need_scores: sorted_needs, value_scores, rank_order };
+}
+
