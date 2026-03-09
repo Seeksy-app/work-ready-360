@@ -60,6 +60,23 @@ export interface WipResponseItem {
   rating: number;
 }
 
+export interface NeedScore {
+  item_id: string;
+  work_need: string;
+  work_value: WorkValue;
+  ranking_avg: number;
+  preference: boolean;
+  combined: number;
+}
+
+export interface WipFullResult {
+  response_id: string;
+  user_id: string;
+  need_scores: NeedScore[];
+  value_scores: Record<WorkValue, { score: number; needs: NeedScore[] }>;
+  rank_order: { work_value: WorkValue; label: string; score: number }[];
+}
+
 export interface WipConfig {
   ranking_weight: number;
   rating_weight: number;
