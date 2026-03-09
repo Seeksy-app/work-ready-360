@@ -4,19 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw, Heart } from 'lucide-react';
-
-const valueDescriptions: Record<string, string> = {
-  "Achievement": "Occupations that let you use your strongest abilities and see results",
-  "Independence": "Occupations that let you work on your own and make decisions",
-  "Recognition": "Occupations that provide advancement, prestige, and leadership roles",
-  "Relationships": "Occupations that provide service to others and coworkers you can be friends with",
-  "Support": "Occupations where management is supportive and trains workers well",
-  "Working Conditions": "Occupations that offer job security, good pay, and a pleasant environment",
-};
+import { Loader2, ArrowLeft, ArrowRight, Briefcase, RefreshCw, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { WORK_VALUE_DESCRIPTIONS, WORK_VALUE_LABELS, WorkValue } from '@/lib/wip';
 
 interface MatchingCareer {
   occupation_code: string;
@@ -24,15 +15,26 @@ interface MatchingCareer {
   similarity: number;
 }
 
+const VALUE_EXTENDED_DESCRIPTIONS: Record<string, string> = {
+  "Achievement": "The Achievement work value involves the need to use your individual abilities and have a feeling of accomplishment.",
+  "Independence": "The Independence work value refers to the need to do tasks on your own and use creativity in the workplace. It also involves the need to get a job where you can make your own decisions.",
+  "Recognition": "The Recognition work value involves the need to have the opportunity for advancement, obtain prestige, and have the potential for leadership.",
+  "Relationships": "The Relationships work value includes the need for friendly co-workers, to be able to help others, and not be forced to go against your sense of right and wrong.",
+  "Support": "The Support work value involves the need for a supportive company, be comfortable with management's style of supervision, and a competent, considerate, and fair management.",
+  "Working Conditions": "The Working Conditions work value refers to the need to have your pay comparable to others, and have job security and good working conditions. You also need to be busy all the time and have many different types of tasks on the job.",
+};
+
 export default function WorkImportanceResults() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<{ value: string; score: number }[]>([]);
+  const [valueResults, setValueResults] = useState<{ value: string; score: number }[]>([]);
+  const [needResults, setNeedResults] = useState<{ need: string; score: number }[]>([]);
   const [topValues, setTopValues] = useState<string[]>([]);
   const [matchingCareers, setMatchingCareers] = useState<MatchingCareer[]>([]);
   const [loadingCareers, setLoadingCareers] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const [showDetailedNeeds, setShowDetailedNeeds] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -52,23 +54,42 @@ export default function WorkImportanceResults() {
         .single();
 
       if (error || !data) {
-        // No results found, redirect to assessment
         navigate('/assessment/work-importance');
         return;
       }
 
-      const scores = data.scores as Record<string, number>;
-      const sortedResults = Object.entries(scores)
-        .map(([value, score]) => ({ value, score }))
-        .sort((a, b) => b.score - a.score);
+      const scores = data.scores as any;
+      
+      // Handle both new format (with values/needs) and legacy format
+      if (scores.values && scores.needs) {
+        // New format
+        const sortedValues = Object.entries(scores.values as Record<string, number>)
+          .map(([value, score]) => ({ value, score }))
+          .sort((a, b) => b.score - a.score);
+        setValueResults(sortedValues);
 
-      setResults(sortedResults);
+        const sortedNeeds = Object.entries(scores.needs as Record<string, number>)
+          .map(([need, score]) => ({ need, score }))
+          .sort((a, b) => b.score - a.score);
+        setNeedResults(sortedNeeds);
+      } else {
+        // Legacy format (flat normalized scores)
+        const sortedResults = Object.entries(scores as Record<string, number>)
+          .map(([value, score]) => ({ value, score }))
+          .sort((a, b) => b.score - a.score);
+        setValueResults(sortedResults);
+      }
+
       setTopValues(data.top_values);
       setCompletedAt(data.completed_at);
       setLoading(false);
 
-      // Fetch matching careers based on work values
-      fetchMatchingCareers(scores);
+      // Fetch matching careers
+      if (scores.values) {
+        fetchMatchingCareers(scores.values);
+      } else {
+        fetchMatchingCareers(scores as Record<string, number>);
+      }
     };
 
     fetchResults();
@@ -81,26 +102,20 @@ export default function WorkImportanceResults() {
         body: {
           action: 'match_careers',
           userValues: scores,
-          keyword: 'software', // Default search term to get some careers
+          keyword: 'software',
           limit: 10,
         },
       });
 
       if (error) throw error;
-
       if (data?.matches) {
         setMatchingCareers(data.matches);
       }
     } catch (error) {
       console.error('Failed to fetch matching careers:', error);
-      // Don't show toast - this is a nice-to-have feature
     } finally {
       setLoadingCareers(false);
     }
-  };
-
-  const handleRetakeAssessment = () => {
-    navigate('/assessment/work-importance');
   };
 
   if (authLoading || loading) {
@@ -111,70 +126,132 @@ export default function WorkImportanceResults() {
     );
   }
 
+  const isNewFormat = needResults.length > 0;
+
   return (
     <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-3xl">
+      <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
+
+          <h1 className="text-2xl font-bold mb-1">Work Importance Profiler :: Summary</h1>
+          {completedAt && (
+            <p className="text-sm text-muted-foreground">
+              Completed {new Date(completedAt).toLocaleDateString()}
+            </p>
+          )}
         </div>
 
-        {/* Results Card */}
-        <Card className="mb-6 animate-scale-in">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
-              <Heart className="h-8 w-8 text-accent" />
-            </div>
-            <CardTitle className="text-2xl">Your Work Values Results</CardTitle>
-            <CardDescription>
-              What matters most to you in a career
-              {completedAt && (
-                <span className="block mt-1 text-xs">
-                  Completed {new Date(completedAt).toLocaleDateString()}
-                </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left: Work Values Summary */}
+          <Card className="animate-scale-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Your Work Values</CardTitle>
+              <CardDescription>
+                The work values are a summary of your Work Importance Profiler responses.
+                {isNewFormat 
+                  ? " Hover over the values to see its definition and the needs it encompasses."
+                  : ""
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {topValues.length >= 2 && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-sm">Your top two work values in order of importance are:</p>
+                  <ol className="list-decimal list-inside space-y-1 pl-2">
+                    {topValues.slice(0, 2).map((v, i) => (
+                      <li key={i} className="text-base font-semibold text-accent">{v}</li>
+                    ))}
+                  </ol>
+                </div>
               )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              {results.map((result, index) => (
-                <div key={result.value} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        index < 3 ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {index + 1}
-                      </span>
-                      <span className="font-medium">{result.value}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">{Math.round(result.score)}</span>/100
-                    </span>
-                  </div>
-                  <Progress value={result.score} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {valueDescriptions[result.value] || ''}
+
+              {valueResults.length > 2 && (
+                <div className="space-y-2">
+                  <p className="font-medium text-sm text-muted-foreground">Your other work values in order of importance are:</p>
+                  <ol start={3} className="list-decimal list-inside space-y-1 pl-2">
+                    {valueResults.slice(2).map((r, i) => (
+                      <li key={i} className="text-sm">{r.value}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <Button 
+                variant="accent" 
+                className="w-full mt-4"
+                onClick={() => navigate('/careers')}
+              >
+                View Occupations
+              </Button>
+
+              {isNewFormat && (
+                <div className="pt-3 border-t">
+                  <button
+                    className="text-sm text-accent underline cursor-pointer hover:text-accent/80"
+                    onClick={() => setShowDetailedNeeds(!showDetailedNeeds)}
+                  >
+                    {showDetailedNeeds ? 'Hide' : 'View'} your detailed needs
+                    {showDetailedNeeds ? <ChevronUp className="inline h-3 w-3 ml-1" /> : <ChevronDown className="inline h-3 w-3 ml-1" />}
+                  </button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Which you can write down and re-enter into the system at a later point.
                   </p>
                 </div>
-              ))}
-            </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <div className="pt-4 border-t">
-              <h4 className="font-semibold mb-2">Your Top Work Values:</h4>
-              <div className="flex flex-wrap gap-2">
-                {topValues.map(v => (
-                  <span key={v} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium">
-                    {v}
-                  </span>
+          {/* Right: Remember box */}
+          <Card className="border-dashed animate-scale-in" style={{ animationDelay: '0.1s' }}>
+            <CardContent className="pt-6">
+              <p className="text-lg font-serif mb-3">
+                <span className="text-2xl font-bold">Remember,</span> happiness in a job or occupational industry increases when a person considers their work values and work needs. Each work value comprises several needs as shown below:
+              </p>
+              <ul className="space-y-3 text-sm">
+                {Object.entries(VALUE_EXTENDED_DESCRIPTIONS).map(([value, desc]) => (
+                  <li key={value}>
+                    <span className="font-bold text-accent">The {value}</span> {desc.replace(`The ${value} `, '')}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Needs Table */}
+        {isNewFormat && showDetailedNeeds && (
+          <Card className="mb-6 animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Your detailed needs are:</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                {needResults.map((need, index) => (
+                  <div
+                    key={need.need}
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground w-6 text-right">{index + 1}.</span>
+                      <span className="text-sm font-medium">{need.need}</span>
+                    </div>
+                    <span className="text-sm font-mono tabular-nums">{need.score.toFixed(3)}</span>
+                  </div>
                 ))}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground mt-4">
+                To re-enter your scores later, write down each need statement and its corresponding score. 
+                When you return, enter the Work Importance Profiler and input your scores.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Matching Careers Card */}
         {matchingCareers.length > 0 && (
@@ -237,7 +314,7 @@ export default function WorkImportanceResults() {
 
         {/* Action Buttons */}
         <div className="flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={handleRetakeAssessment}>
+          <Button variant="outline" className="flex-1" onClick={() => navigate('/assessment/work-importance')}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Retake Assessment
           </Button>
