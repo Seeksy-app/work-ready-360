@@ -149,6 +149,194 @@ export type Database = {
         }
         Relationships: []
       }
+      wip_block_responses: {
+        Row: {
+          assigned_rank: number
+          block_number: number
+          created_at: string
+          id: string
+          item_id: number
+          session_id: string
+        }
+        Insert: {
+          assigned_rank: number
+          block_number: number
+          created_at?: string
+          id?: string
+          item_id: number
+          session_id: string
+        }
+        Update: {
+          assigned_rank?: number
+          block_number?: number
+          created_at?: string
+          id?: string
+          item_id?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wip_block_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wip_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wip_importance_responses: {
+        Row: {
+          created_at: string
+          id: string
+          is_important: boolean
+          item_id: number
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_important: boolean
+          item_id: number
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_important?: boolean
+          item_id?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wip_importance_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wip_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wip_item_scores: {
+        Row: {
+          adjusted_votes: number
+          final_score: number
+          id: string
+          initial_z: number
+          item_id: number
+          proportion_p: number
+          raw_votes: number
+          session_id: string
+        }
+        Insert: {
+          adjusted_votes: number
+          final_score: number
+          id?: string
+          initial_z: number
+          item_id: number
+          proportion_p: number
+          raw_votes: number
+          session_id: string
+        }
+        Update: {
+          adjusted_votes?: number
+          final_score?: number
+          id?: string
+          initial_z?: number
+          item_id?: number
+          proportion_p?: number
+          raw_votes?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wip_item_scores_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wip_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wip_scale_scores: {
+        Row: {
+          id: string
+          rank_order: number
+          scale_key: string
+          scale_label: string
+          score: number
+          session_id: string
+        }
+        Insert: {
+          id?: string
+          rank_order: number
+          scale_key: string
+          scale_label: string
+          score: number
+          session_id: string
+        }
+        Update: {
+          id?: string
+          rank_order?: number
+          scale_key?: string
+          scale_label?: string
+          score?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wip_scale_scores_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "wip_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wip_sessions: {
+        Row: {
+          completed_at: string | null
+          consistency_flag: boolean | null
+          consistency_score: number | null
+          created_at: string
+          id: string
+          result_payload: Json | null
+          status: string
+          top_scale_1: string | null
+          top_scale_2: string | null
+          user_id: string
+          zero_point_raw_votes: number | null
+          zero_point_z: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          consistency_flag?: boolean | null
+          consistency_score?: number | null
+          created_at?: string
+          id?: string
+          result_payload?: Json | null
+          status?: string
+          top_scale_1?: string | null
+          top_scale_2?: string | null
+          user_id: string
+          zero_point_raw_votes?: number | null
+          zero_point_z?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          consistency_flag?: boolean | null
+          consistency_score?: number | null
+          created_at?: string
+          id?: string
+          result_payload?: Json | null
+          status?: string
+          top_scale_1?: string | null
+          top_scale_2?: string | null
+          user_id?: string
+          zero_point_raw_votes?: number | null
+          zero_point_z?: number | null
+        }
+        Relationships: []
+      }
       work_importance_results: {
         Row: {
           completed_at: string
