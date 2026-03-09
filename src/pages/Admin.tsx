@@ -144,46 +144,15 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Recent Users Table */}
+        {/* Navigation to sub-pages replaces mock data */}
         <Card className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <CardHeader>
-            <CardTitle>Recent Users</CardTitle>
-            <CardDescription>
-              A list of recently registered users on the platform
-            </CardDescription>
+            <CardTitle>Admin Tools</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={user.status === 'active' ? 'border-success text-success' : 'border-muted-foreground'}
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/admin/wip')}>
+              <Target className="h-4 w-4 mr-2" />View & Manage WIP Sessions
+            </Button>
           </CardContent>
         </Card>
       </div>
