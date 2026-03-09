@@ -15,6 +15,8 @@ import Resume from "./pages/Resume";
 import Podcast from "./pages/Podcast";
 import CareerExplorer from "./pages/CareerExplorer";
 import Admin from "./pages/Admin";
+import AdminWip from "./pages/AdminWip";
+import AdminWipSession from "./pages/AdminWipSession";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/podcast" element={<Podcast />} />
             <Route path="/careers" element={<CareerExplorer />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/wip" element={<AdminWip />} />
+            <Route path="/admin/wip/:sessionId" element={<AdminWipSession />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -97,15 +97,6 @@ export default function Admin() {
     { title: 'Assessments Completed', value: stats.completedAssessments, icon: Target, color: 'text-primary' },
   ];
 
-  // Mock recent users data
-  const recentUsers = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'user', status: 'active' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user', status: 'active' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'user', status: 'pending' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'admin', status: 'active' },
-    { id: 5, name: 'Chris Brown', email: 'chris@example.com', role: 'user', status: 'active' },
-  ];
-
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
@@ -127,6 +118,13 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Quick Links */}
+        <div className="mb-8">
+          <Button variant="outline" onClick={() => navigate('/admin/wip')} className="mr-3">
+            <Target className="h-4 w-4 mr-2" />WIP Sessions
+          </Button>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statCards.map((stat, index) => (
@@ -146,46 +144,15 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Recent Users Table */}
+        {/* Navigation to sub-pages replaces mock data */}
         <Card className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <CardHeader>
-            <CardTitle>Recent Users</CardTitle>
-            <CardDescription>
-              A list of recently registered users on the platform
-            </CardDescription>
+            <CardTitle>Admin Tools</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={user.status === 'active' ? 'border-success text-success' : 'border-muted-foreground'}
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/admin/wip')}>
+              <Target className="h-4 w-4 mr-2" />View & Manage WIP Sessions
+            </Button>
           </CardContent>
         </Card>
       </div>
