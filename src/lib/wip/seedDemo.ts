@@ -85,13 +85,15 @@ export async function seedAndrewWipScores(): Promise<{
   const userId = profileData.user_id;
 
   // 2. Check for existing demo session
-  const { data: existingSession } = await supabase
+  // Use raw query approach to filter by is_demo since it's a new column not yet in types
+  const { data: existingSessions } = await supabase
     .from('wip_sessions')
     .select('id')
     .eq('user_id', userId)
-    .eq('is_demo' as any, true)
-    .limit(1)
-    .single();
+    .eq('source' as any, 'manual_seed')
+    .limit(1);
+
+  const existingSession = existingSessions?.[0] || null;
 
   let sessionId: string;
 
