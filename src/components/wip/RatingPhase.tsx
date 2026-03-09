@@ -3,7 +3,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
 interface RatingPhaseProps {
-  items: WipItem[];
+  items: WipItemConfig[];
   ratings: Record<string, number>;
   onRatingChange: (itemId: string, rating: number) => void;
   currentPage: number;
