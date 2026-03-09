@@ -31,22 +31,22 @@ export default function RatingPhase({ items, ratings, onRatingChange, currentPag
       </div>
 
       {pageItems.map((item) => (
-        <div key={item.item_id} className="space-y-3">
-          <p className="font-medium text-sm">{item.text}</p>
+        <div key={item.id} className="space-y-3">
+          <p className="font-medium text-sm">{item.statement}</p>
           <RadioGroup
-            value={ratings[item.item_id]?.toString() || ''}
-            onValueChange={(value) => onRatingChange(item.item_id, parseInt(value))}
+            value={ratings[String(item.id)]?.toString() || ''}
+            onValueChange={(value) => onRatingChange(String(item.id), parseInt(value))}
             className="flex flex-wrap gap-2"
           >
             {ratingOptions.map((option) => (
               <div key={option.value} className="flex items-center">
                 <RadioGroupItem
                   value={option.value.toString()}
-                  id={`rate-${item.item_id}-${option.value}`}
+                  id={`rate-${item.id}-${option.value}`}
                   className="peer sr-only"
                 />
                 <Label
-                  htmlFor={`rate-${item.item_id}-${option.value}`}
+                  htmlFor={`rate-${item.id}-${option.value}`}
                   className="px-3 py-2 rounded-lg border-2 cursor-pointer transition-all hover:border-accent/50 peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/10 text-sm"
                 >
                   {option.label}
