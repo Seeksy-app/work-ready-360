@@ -1,96 +1,132 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, Heart, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Heart, CheckCircle2, GripVertical, MousePointer, ListOrdered } from 'lucide-react';
 import { 
   WIP_ITEMS, 
+  WIP_ROUNDS,
   WORK_VALUES,
   WORK_VALUE_LABELS,
   WORK_VALUE_DESCRIPTIONS,
-  scoreWipRatingsOnly,
+  scoreWipFull,
   WorkValue,
   ValueScore 
 } from '@/lib/wip';
+import RankingDragDrop from '@/components/wip/RankingDragDrop';
+import RankingClickAssign from '@/components/wip/RankingClickAssign';
+import RankingSequential from '@/components/wip/RankingSequential';
+import RatingPhase from '@/components/wip/RatingPhase';
 
-const responseOptions = [
-  { value: "1", label: "Not Important" },
-  { value: "2", label: "Somewhat Important" },
-  { value: "3", label: "Important" },
-  { value: "4", label: "Very Important" },
-  { value: "5", label: "Most Important" },
-];
+type RankingMode = 'drag' | 'click' | 'sequential';
+type Phase = 'ranking' | 'rating';
 
-const QUESTIONS_PER_PAGE = 4;
+const RATING_ITEMS_PER_PAGE = 5;
 
 export default function WorkImportance() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(0);
-  const [responses, setResponses] = useState<Record<string, number>>({});
+  
+  // Assessment state
+  const [phase, setPhase] = useState<Phase>('ranking');
+  const [rankingMode, setRankingMode] = useState<RankingMode>('drag');
+  const [currentRound, setCurrentRound] = useState(0);
+  const [roundRankings, setRoundRankings] = useState<Record<number, Record<string, number>>>({});
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [ratingPage, setRatingPage] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [results, setResults] = useState<{ value: WorkValue; score: ValueScore }[]>([]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
+    if (!authLoading && !user) navigate('/auth');
   }, [user, authLoading, navigate]);
 
-  const totalPages = Math.ceil(WIP_ITEMS.length / QUESTIONS_PER_PAGE);
-  const startIndex = currentPage * QUESTIONS_PER_PAGE;
-  const currentQuestions = WIP_ITEMS.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
-  const progress = (Object.keys(responses).length / WIP_ITEMS.length) * 100;
+  // Current round items
+  const currentRoundItemIds = WIP_ROUNDS[currentRound] || [];
+  const currentRoundItems = currentRoundItemIds.map(id => WIP_ITEMS.find(i => i.item_id === id)!).filter(Boolean);
 
-  const allCurrentAnswered = currentQuestions.every(q => responses[q.item_id] !== undefined);
-  const allAnswered = Object.keys(responses).length === WIP_ITEMS.length;
+  // Check if current round is ranked
+  const isCurrentRoundRanked = roundRankings[currentRound] && 
+    Object.keys(roundRankings[currentRound]).length === currentRoundItems.length;
+
+  // Progress calculations
+  const completedRounds = Object.keys(roundRankings).filter(
+    k => roundRankings[parseInt(k)] && Object.keys(roundRankings[parseInt(k)]).length === 5
+  ).length;
+  
+  const ratingTotalPages = Math.ceil(WIP_ITEMS.length / RATING_ITEMS_PER_PAGE);
+  const ratedCount = Object.keys(ratings).length;
+  const allRated = ratedCount === WIP_ITEMS.length;
+
+  const overallProgress = phase === 'ranking'
+    ? (completedRounds / WIP_ROUNDS.length) * 50
+    : 50 + (ratedCount / WIP_ITEMS.length) * 50;
+
+  const handleRoundRanking = useCallback((rankings: Record<string, number>) => {
+    setRoundRankings(prev => ({ ...prev, [currentRound]: rankings }));
+  }, [currentRound]);
+
+  const handleNextRound = () => {
+    if (currentRound < WIP_ROUNDS.length - 1) {
+      setCurrentRound(currentRound + 1);
+    } else {
+      // Move to rating phase
+      setPhase('rating');
+      setRatingPage(0);
+    }
+  };
+
+  const handlePrevRound = () => {
+    if (currentRound > 0) {
+      setCurrentRound(currentRound - 1);
+    }
+  };
+
+  const handleRatingChange = (itemId: string, rating: number) => {
+    setRatings(prev => ({ ...prev, [itemId]: rating }));
+  };
+
+  const currentPageRatingItems = WIP_ITEMS.slice(
+    ratingPage * RATING_ITEMS_PER_PAGE,
+    (ratingPage + 1) * RATING_ITEMS_PER_PAGE
+  );
+  const allCurrentRated = currentPageRatingItems.every(i => ratings[i.item_id] !== undefined);
 
   const handleSubmit = async () => {
     if (!user) return;
-    
     setIsSubmitting(true);
     
     try {
-      // Use the new scoring algorithm
-      const scoreResult = scoreWipRatingsOnly({
+      const scoreResult = scoreWipFull({
         response_id: crypto.randomUUID(),
         user_id: user.id,
-        items: WIP_ITEMS,
-        ratings: responses,
+        roundRankings,
+        ratings,
       });
       
-      // Format results for display (sorted by normalized score)
       const sortedResults = scoreResult.rank_order.map(r => ({
         value: r.work_value,
         score: scoreResult.value_scores[r.work_value],
       }));
       
-      // Prepare data for database (using display-friendly labels for top_values)
       const topValues = sortedResults.slice(0, 3).map(r => WORK_VALUE_LABELS[r.value]);
-      
-      // Store both normalized scores and raw scores
-      const scoresObj: Record<string, number> = {};
       const normalizedScoresObj: Record<string, number> = {};
-      
       for (const v of WORK_VALUES) {
-        const displayLabel = WORK_VALUE_LABELS[v];
-        scoresObj[displayLabel] = Math.round(scoreResult.value_scores[v].raw * 100) / 100;
-        normalizedScoresObj[displayLabel] = Math.round(scoreResult.value_scores[v].normalized);
+        normalizedScoresObj[WORK_VALUE_LABELS[v]] = Math.round(scoreResult.value_scores[v].normalized);
       }
 
       const { error } = await supabase
         .from('work_importance_results')
         .insert({
           user_id: user.id,
-          responses: responses,
-          scores: normalizedScoresObj, // Store normalized 0-100 scores
+          responses: { roundRankings, ratings },
+          scores: normalizedScoresObj,
           top_values: topValues,
         });
 
@@ -150,11 +186,6 @@ export default function WorkImportance() {
                           {Math.round(result.score.normalized)}
                         </span>
                         /100
-                        {result.score.z !== 0 && (
-                          <span className={`ml-2 text-xs ${result.score.z > 0 ? 'text-success' : 'text-muted-foreground'}`}>
-                            (z: {result.score.z > 0 ? '+' : ''}{result.score.z.toFixed(2)})
-                          </span>
-                        )}
                       </div>
                     </div>
                     <Progress value={result.score.normalized} className="h-2" />
@@ -196,7 +227,7 @@ export default function WorkImportance() {
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4 max-w-2xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
@@ -208,99 +239,169 @@ export default function WorkImportance() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Work Importance Profiler</h1>
-              <p className="text-muted-foreground">Identify what matters most in your career</p>
+              <p className="text-muted-foreground">
+                {phase === 'ranking' ? 'Phase 1: Ranking' : 'Phase 2: Rating'}
+              </p>
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Progress</span>
-              <span>{Math.round(progress)}% complete</span>
+              <span>Overall Progress</span>
+              <span>{Math.round(overallProgress)}% complete</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={overallProgress} className="h-2" />
           </div>
         </div>
 
-        {/* Questions */}
-        <Card className="mb-6 animate-fade-in">
-          <CardHeader>
-            <CardTitle className="text-lg">
-              How important are these work values to you?
-            </CardTitle>
-            <CardDescription>
-              Questions {startIndex + 1} - {Math.min(startIndex + QUESTIONS_PER_PAGE, WIP_ITEMS.length)} of {WIP_ITEMS.length}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            {currentQuestions.map((question) => (
-              <div key={question.item_id} className="space-y-3">
-                <p className="font-medium">{question.text}</p>
-                <RadioGroup
-                  value={responses[question.item_id]?.toString() || ''}
-                  onValueChange={(value) => setResponses(prev => ({ 
-                    ...prev, 
-                    [question.item_id]: parseInt(value) 
-                  }))}
-                  className="flex flex-wrap gap-2"
-                >
-                  {responseOptions.map((option) => (
-                    <div key={option.value} className="flex items-center">
-                      <RadioGroupItem
-                        value={option.value}
-                        id={`q${question.item_id}-${option.value}`}
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor={`q${question.item_id}-${option.value}`}
-                        className="px-3 py-2 rounded-lg border-2 cursor-pointer transition-all hover:border-accent/50 peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/10 text-sm"
-                      >
-                        {option.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* Ranking Phase */}
+        {phase === 'ranking' && (
+          <>
+            <Card className="mb-6 animate-fade-in">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">
+                      Round {currentRound + 1} of {WIP_ROUNDS.length}
+                    </CardTitle>
+                    <CardDescription>
+                      Order statements with 1 being the <strong>most</strong> important and 5 being the <strong>least</strong>
+                    </CardDescription>
+                  </div>
+                </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(p => p - 1)}
-            disabled={currentPage === 0}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Previous
-          </Button>
-          
-          {currentPage < totalPages - 1 ? (
-            <Button
-              variant="accent"
-              onClick={() => setCurrentPage(p => p + 1)}
-              disabled={!allCurrentAnswered}
-            >
-              Next
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="accent"
-              onClick={handleSubmit}
-              disabled={!allAnswered || isSubmitting}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                {/* Ranking mode selector */}
+                <Tabs value={rankingMode} onValueChange={(v) => setRankingMode(v as RankingMode)} className="mt-3">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="drag" className="text-xs gap-1">
+                      <GripVertical className="h-3 w-3" />
+                      Drag
+                    </TabsTrigger>
+                    <TabsTrigger value="click" className="text-xs gap-1">
+                      <MousePointer className="h-3 w-3" />
+                      Click
+                    </TabsTrigger>
+                    <TabsTrigger value="sequential" className="text-xs gap-1">
+                      <ListOrdered className="h-3 w-3" />
+                      Pick
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardHeader>
+              <CardContent>
+                {rankingMode === 'drag' && (
+                  <RankingDragDrop
+                    key={`drag-${currentRound}`}
+                    items={currentRoundItems}
+                    onRankingComplete={handleRoundRanking}
+                    currentRankings={roundRankings[currentRound]}
+                  />
+                )}
+                {rankingMode === 'click' && (
+                  <RankingClickAssign
+                    key={`click-${currentRound}`}
+                    items={currentRoundItems}
+                    onRankingComplete={handleRoundRanking}
+                    currentRankings={roundRankings[currentRound]}
+                  />
+                )}
+                {rankingMode === 'sequential' && (
+                  <RankingSequential
+                    key={`seq-${currentRound}`}
+                    items={currentRoundItems}
+                    onRankingComplete={handleRoundRanking}
+                    currentRankings={roundRankings[currentRound]}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={handlePrevRound} disabled={currentRound === 0}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              <Button
+                variant="accent"
+                onClick={handleNextRound}
+                disabled={!isCurrentRoundRanked}
+              >
+                {currentRound < WIP_ROUNDS.length - 1 ? (
+                  <>Next <ArrowRight className="h-4 w-4" /></>
+                ) : (
+                  <>Go to Rating Phase <ArrowRight className="h-4 w-4" /></>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Rating Phase */}
+        {phase === 'rating' && (
+          <>
+            <Card className="mb-6 animate-fade-in">
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Rate Each Statement
+                </CardTitle>
+                <CardDescription>
+                  Page {ratingPage + 1} of {ratingTotalPages} — Rate how important each is independently
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RatingPhase
+                  items={WIP_ITEMS}
+                  ratings={ratings}
+                  onRatingChange={handleRatingChange}
+                  currentPage={ratingPage}
+                  itemsPerPage={RATING_ITEMS_PER_PAGE}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (ratingPage > 0) {
+                    setRatingPage(ratingPage - 1);
+                  } else {
+                    setPhase('ranking');
+                    setCurrentRound(WIP_ROUNDS.length - 1);
+                  }
+                }}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              
+              {ratingPage < ratingTotalPages - 1 ? (
+                <Button
+                  variant="accent"
+                  onClick={() => setRatingPage(ratingPage + 1)}
+                  disabled={!allCurrentRated}
+                >
+                  Next <ArrowRight className="h-4 w-4" />
+                </Button>
               ) : (
-                <>
-                  Complete Assessment
-                  <CheckCircle2 className="h-4 w-4" />
-                </>
+                <Button
+                  variant="accent"
+                  onClick={handleSubmit}
+                  disabled={!allRated || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Complete Assessment
+                      <CheckCircle2 className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

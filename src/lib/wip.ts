@@ -1,6 +1,11 @@
 /**
  * Work Importance Profiler (WIP) Scoring and O*NET Matching Library
  * Based on the O*NET Work Importance Profiler specification
+ * 
+ * Structure: 21 work need items across 6 work values
+ * Phase 1: Ranking - 21 rounds of 5 items, rank 1 (most) to 5 (least)
+ * Phase 2: Rating - Rate each of 21 items on 1-5 importance scale
+ * Scoring: 67% ranking weight + 33% rating weight
  */
 
 export type WorkValue =
@@ -20,7 +25,6 @@ export const WORK_VALUES: WorkValue[] = [
   "Working_Conditions",
 ];
 
-// Display-friendly names for the work values
 export const WORK_VALUE_LABELS: Record<WorkValue, string> = {
   Achievement: "Achievement",
   Independence: "Independence",
@@ -39,9 +43,13 @@ export const WORK_VALUE_DESCRIPTIONS: Record<WorkValue, string> = {
   Working_Conditions: "Occupations with good working conditions, job security, and work-life balance",
 };
 
+// Work need to work value mapping
+export type WorkNeed = string;
+
 export interface WipItem {
   item_id: string;
   work_value: WorkValue;
+  work_need: string;
   text: string;
   active?: boolean;
 }
@@ -53,12 +61,12 @@ export interface WipResponseItem {
 }
 
 export interface WipConfig {
-  ranking_weight: number;    // e.g., 0.67
-  rating_weight: number;     // e.g., 0.33
-  rating_min: number;        // 1
-  rating_max: number;        // 5
-  normalized_min?: number;   // default 0
-  normalized_max?: number;   // default 100
+  ranking_weight: number;
+  rating_weight: number;
+  rating_min: number;
+  rating_max: number;
+  normalized_min?: number;
+  normalized_max?: number;
 }
 
 export interface ValueScore {
@@ -95,7 +103,6 @@ export interface MatchResult {
   };
 }
 
-// Default configuration matching the spec
 export const DEFAULT_WIP_CONFIG: WipConfig = {
   ranking_weight: 0.67,
   rating_weight: 0.33,
@@ -105,44 +112,111 @@ export const DEFAULT_WIP_CONFIG: WipConfig = {
   normalized_max: 100,
 };
 
-// WIP Assessment Items (21 items, based on O*NET Work Importance Locator)
+/**
+ * The 21 O*NET Work Importance Profiler items
+ * One item per work need, mapped to their parent work value
+ */
 export const WIP_ITEMS: WipItem[] = [
-  // Achievement (4 items)
-  { item_id: "ACH1", work_value: "Achievement", text: "I want a job where I can try out my own ideas" },
-  { item_id: "ACH2", work_value: "Achievement", text: "I want a job where I can make use of my abilities" },
-  { item_id: "ACH3", work_value: "Achievement", text: "I want a job where I can see the results of my work" },
-  { item_id: "ACH4", work_value: "Achievement", text: "I want a job that gives me a feeling of accomplishment" },
-  
-  // Independence (4 items)
-  { item_id: "IND1", work_value: "Independence", text: "I want a job where I can plan my work without much supervision" },
-  { item_id: "IND2", work_value: "Independence", text: "I want a job where I can make decisions on my own" },
-  { item_id: "IND3", work_value: "Independence", text: "I want a job where I can do things my own way" },
-  { item_id: "IND4", work_value: "Independence", text: "I want a job where I am responsible for my work" },
-  
-  // Recognition (4 items)
-  { item_id: "REC1", work_value: "Recognition", text: "I want a job where I get recognition for the work I do" },
-  { item_id: "REC2", work_value: "Recognition", text: "I want a job where I can give directions to others" },
-  { item_id: "REC3", work_value: "Recognition", text: "I want a job where my coworkers respect me" },
-  { item_id: "REC4", work_value: "Recognition", text: "I want a job that provides advancement opportunities" },
-  
-  // Relationships (4 items)
-  { item_id: "REL1", work_value: "Relationships", text: "I want a job where I can do things for other people" },
-  { item_id: "REL2", work_value: "Relationships", text: "I want a job where my coworkers are friendly" },
-  { item_id: "REL3", work_value: "Relationships", text: "I want a job where I can work as part of a team" },
-  { item_id: "REL4", work_value: "Relationships", text: "I want a job where I am not asked to do anything against my morals" },
-  
-  // Support (4 items)
-  { item_id: "SUP1", work_value: "Support", text: "I want a job with supervisors who back up their workers" },
-  { item_id: "SUP2", work_value: "Support", text: "I want a job with supervisors who train workers well" },
-  { item_id: "SUP3", work_value: "Support", text: "I want a job with a company that treats employees fairly" },
-  { item_id: "SUP4", work_value: "Support", text: "I want a job that offers steady employment" },
-  
-  // Working Conditions (4 items - added 1 to make 24 total for better balance)
-  { item_id: "WC1", work_value: "Working_Conditions", text: "I want a job where I am busy all the time" },
-  { item_id: "WC2", work_value: "Working_Conditions", text: "I want a job with good working conditions" },
-  { item_id: "WC3", work_value: "Working_Conditions", text: "I want a job with enough time for my family" },
-  { item_id: "WC4", work_value: "Working_Conditions", text: "I want a job where I can work on my own" },
+  // Achievement (2 work needs)
+  { item_id: "WN01", work_value: "Achievement", work_need: "Ability Utilization",
+    text: "I make use of my abilities" },
+  { item_id: "WN02", work_value: "Achievement", work_need: "Achievement",
+    text: "The work could give me a feeling of accomplishment" },
+
+  // Working Conditions (6 work needs)
+  { item_id: "WN03", work_value: "Working_Conditions", work_need: "Activity",
+    text: "I could be busy all the time" },
+  { item_id: "WN04", work_value: "Working_Conditions", work_need: "Independence",
+    text: "I could do my work alone" },
+  { item_id: "WN05", work_value: "Working_Conditions", work_need: "Variety",
+    text: "I could do something different every day" },
+  { item_id: "WN06", work_value: "Working_Conditions", work_need: "Compensation",
+    text: "My pay would compare well with that of other workers" },
+  { item_id: "WN07", work_value: "Working_Conditions", work_need: "Security",
+    text: "The job would provide for steady employment" },
+  { item_id: "WN08", work_value: "Working_Conditions", work_need: "Working Conditions",
+    text: "The job would have good working conditions" },
+
+  // Recognition (4 work needs)
+  { item_id: "WN09", work_value: "Recognition", work_need: "Advancement",
+    text: "The job would provide an opportunity for advancement" },
+  { item_id: "WN10", work_value: "Recognition", work_need: "Authority",
+    text: "I could give directions and instructions to others" },
+  { item_id: "WN11", work_value: "Recognition", work_need: "Recognition",
+    text: "I could receive recognition for the work I do" },
+  { item_id: "WN12", work_value: "Recognition", work_need: "Social Status",
+    text: "People would look up to me" },
+
+  // Independence (3 work needs)
+  { item_id: "WN13", work_value: "Independence", work_need: "Creativity",
+    text: "I could try out my own ideas" },
+  { item_id: "WN14", work_value: "Independence", work_need: "Responsibility",
+    text: "I could make decisions on my own" },
+  { item_id: "WN15", work_value: "Independence", work_need: "Autonomy",
+    text: "I could plan my work with little supervision" },
+
+  // Relationships (3 work needs)
+  { item_id: "WN16", work_value: "Relationships", work_need: "Co-workers",
+    text: "My co-workers would be easy to get along with" },
+  { item_id: "WN17", work_value: "Relationships", work_need: "Social Service",
+    text: "I could do things for other people" },
+  { item_id: "WN18", work_value: "Relationships", work_need: "Moral Values",
+    text: "I would never be pressured to do things that go against my sense of right and wrong" },
+
+  // Support (3 work needs)
+  { item_id: "WN19", work_value: "Support", work_need: "Company Policies",
+    text: "I would be treated fairly by the company" },
+  { item_id: "WN20", work_value: "Support", work_need: "Supervision-Human Relations",
+    text: "I have supervisors who would back up their workers with management" },
+  { item_id: "WN21", work_value: "Support", work_need: "Supervision-Technical",
+    text: "I have supervisors who train their workers well" },
 ];
+
+/**
+ * 21 rounds of 5 items each for the ranking phase.
+ * Each item appears exactly 5 times across all rounds.
+ * Rounds draw from different work values for cross-value comparison.
+ * This is a balanced incomplete block design (BIBD).
+ */
+export const WIP_ROUNDS: string[][] = [
+  // Round 1-7: systematic rotation
+  ["WN03", "WN17", "WN13", "WN06", "WN09"],  // WC, REL, IND, WC, REC
+  ["WN01", "WN16", "WN14", "WN19", "WN10"],  // ACH, REL, IND, SUP, REC
+  ["WN02", "WN18", "WN15", "WN20", "WN11"],  // ACH, REL, IND, SUP, REC
+  ["WN04", "WN17", "WN09", "WN19", "WN01"],  // WC, REL, REC, SUP, ACH
+  ["WN05", "WN16", "WN10", "WN20", "WN13"],  // WC, REL, REC, SUP, IND
+  ["WN07", "WN18", "WN11", "WN21", "WN14"],  // WC, REL, REC, SUP, IND
+  ["WN08", "WN12", "WN15", "WN02", "WN19"],  // WC, REC, IND, ACH, SUP
+
+  // Round 8-14: different groupings
+  ["WN03", "WN01", "WN12", "WN16", "WN21"],  // WC, ACH, REC, REL, SUP
+  ["WN04", "WN02", "WN11", "WN14", "WN20"],  // WC, ACH, REC, IND, SUP
+  ["WN05", "WN09", "WN13", "WN18", "WN21"],  // WC, REC, IND, REL, SUP
+  ["WN06", "WN10", "WN15", "WN17", "WN01"],  // WC, REC, IND, REL, ACH
+  ["WN07", "WN12", "WN16", "WN02", "WN20"],  // WC, REC, REL, ACH, SUP
+  ["WN08", "WN09", "WN18", "WN14", "WN03"],  // WC, REC, REL, IND, WC
+  ["WN06", "WN11", "WN13", "WN19", "WN04"],  // WC, REC, IND, SUP, WC
+
+  // Round 15-21: remaining pairings
+  ["WN07", "WN01", "WN10", "WN18", "WN15"],  // WC, ACH, REC, REL, IND
+  ["WN08", "WN02", "WN12", "WN17", "WN21"],  // WC, ACH, REC, REL, SUP
+  ["WN05", "WN01", "WN11", "WN16", "WN19"],  // WC, ACH, REC, REL, SUP
+  ["WN03", "WN09", "WN14", "WN20", "WN07"],  // WC, REC, IND, SUP, WC
+  ["WN04", "WN13", "WN12", "WN18", "WN08"],  // WC, IND, REC, REL, WC
+  ["WN05", "WN15", "WN10", "WN17", "WN02"],  // WC, IND, REC, REL, ACH
+  ["WN06", "WN16", "WN21", "WN09", "WN08"],  // WC, REL, SUP, REC, WC
+];
+
+// Verify round structure
+function verifyRounds() {
+  const counts: Record<string, number> = {};
+  for (const round of WIP_ROUNDS) {
+    for (const id of round) {
+      counts[id] = (counts[id] || 0) + 1;
+    }
+  }
+  return counts;
+}
 
 // Helper functions
 function mean(xs: number[]): number {
@@ -158,22 +232,17 @@ function std(xs: number[]): number {
 function minMaxRawForValue(n: number, k: number, cfg: WipConfig): { minRaw: number; maxRaw: number } {
   const rw = cfg.ranking_weight;
   const tw = cfg.rating_weight;
-
-  // ranking_points = (n + 1) - rank
-  // Best ranks: 1..k
   const bestRankSum = k * (n + 1) - (k * (k + 1)) / 2;
-  // Worst ranks: (n-k+1)..n
   const worstRankSum = k * (n + 1) - (k * (2 * n - k + 1)) / 2;
-
   const minRaw = rw * worstRankSum + tw * (k * cfg.rating_min);
   const maxRaw = rw * bestRankSum + tw * (k * cfg.rating_max);
-
   return { minRaw, maxRaw };
 }
 
 /**
- * Score a WIP assessment response
- * Uses combined ranking (67%) and rating (33%) scoring with normalization
+ * Score a full WIP assessment (ranking + rating)
+ * Rankings come from the 21-round ranking phase
+ * Ratings come from the rating phase
  */
 export function scoreWip(params: {
   response_id: string;
@@ -186,10 +255,8 @@ export function scoreWip(params: {
 
   const normalizedMin = cfg.normalized_min ?? 0;
   const normalizedMax = cfg.normalized_max ?? 100;
-
   const activeItems = items.filter(i => i.active !== false);
   const n = activeItems.length;
-
   const respMap = new Map(responseItems.map(r => [r.item_id, r]));
 
   const ranks = responseItems.map(r => r.rank);
@@ -213,10 +280,8 @@ export function scoreWip(params: {
   for (const itm of activeItems) {
     const r = respMap.get(itm.item_id);
     if (!r) continue;
-
     const ranking_points = (n + 1) - r.rank;
     const combined = rw * ranking_points + tw * r.rating;
-
     perValueRaw[itm.work_value] += combined;
     counts[itm.work_value] += 1;
   }
@@ -227,14 +292,11 @@ export function scoreWip(params: {
   for (const v of WORK_VALUES) {
     const k = counts[v] || 0;
     const raw = perValueRaw[v] || 0;
-
     const { minRaw, maxRaw } = minMaxRawForValue(n, k, cfg);
-
     const normalized =
       k === 0 || maxRaw === minRaw
         ? normalizedMin
         : normalizedMin + ((raw - minRaw) / (maxRaw - minRaw)) * (normalizedMax - normalizedMin);
-
     const clamped = Math.max(normalizedMin, Math.min(normalizedMax, normalized));
     value_scores[v] = { raw, normalized: clamped, z: 0 };
     normVals.push(clamped);
@@ -250,32 +312,86 @@ export function scoreWip(params: {
     .map(v => ({ work_value: v, normalized: value_scores[v].normalized }))
     .sort((a, b) => b.normalized - a.normalized);
 
-  return {
-    response_id,
-    user_id,
-    n_items: n,
-    value_scores,
-    rank_order,
-    checks: { rank_duplicates, missing_items, out_of_range },
-  };
+  return { response_id, user_id, n_items: n, value_scores, rank_order, checks: { rank_duplicates, missing_items, out_of_range } };
 }
 
 /**
- * Simplified scoring for rating-only assessments
- * Used when we only have ratings (1-5) without separate rankings
+ * Compute aggregate rankings from round-by-round ranking data.
+ * Each round gives items ranks 1-5. We aggregate by computing average rank
+ * across all rounds each item appeared in, then convert to overall rank 1-21.
+ */
+export function computeAggregateRanks(
+  roundRankings: Record<number, Record<string, number>> // roundIndex -> { item_id: rank(1-5) }
+): Record<string, number> {
+  // Collect all rank scores per item (lower = more important)
+  const itemScores: Record<string, number[]> = {};
+  
+  for (const roundIdx in roundRankings) {
+    const rankings = roundRankings[roundIdx];
+    for (const itemId in rankings) {
+      if (!itemScores[itemId]) itemScores[itemId] = [];
+      itemScores[itemId].push(rankings[itemId]);
+    }
+  }
+  
+  // Average rank per item (lower = more important)
+  const avgRanks = Object.entries(itemScores).map(([id, scores]) => ({
+    id,
+    avgRank: scores.reduce((a, b) => a + b, 0) / scores.length,
+  }));
+  
+  // Sort by average rank ascending (best first)
+  avgRanks.sort((a, b) => a.avgRank - b.avgRank);
+  
+  // Assign overall ranks 1-21
+  const result: Record<string, number> = {};
+  avgRanks.forEach((item, idx) => {
+    result[item.id] = idx + 1;
+  });
+  
+  return result;
+}
+
+/**
+ * Score WIP with ranking rounds + ratings
+ */
+export function scoreWipFull(params: {
+  response_id: string;
+  user_id: string;
+  roundRankings: Record<number, Record<string, number>>;
+  ratings: Record<string, number>;
+}): ScoreResult {
+  const { response_id, user_id, roundRankings, ratings } = params;
+  
+  const aggregateRanks = computeAggregateRanks(roundRankings);
+  
+  const responseItems: WipResponseItem[] = WIP_ITEMS
+    .filter(item => aggregateRanks[item.item_id] !== undefined && ratings[item.item_id] !== undefined)
+    .map(item => ({
+      item_id: item.item_id,
+      rank: aggregateRanks[item.item_id],
+      rating: ratings[item.item_id],
+    }));
+  
+  return scoreWip({
+    response_id,
+    user_id,
+    items: WIP_ITEMS,
+    responseItems,
+  });
+}
+
+/**
+ * Simplified scoring for rating-only assessments (backward compat)
  */
 export function scoreWipRatingsOnly(params: {
   response_id: string;
   user_id: string;
   items: WipItem[];
-  ratings: Record<string, number>; // item_id -> rating (1-5)
+  ratings: Record<string, number>;
 }): ScoreResult {
   const { response_id, user_id, items, ratings } = params;
-  
-  // Convert ratings to response items with implicit ranking based on rating order
   const activeItems = items.filter(i => i.active !== false);
-  
-  // Create items with ratings
   const itemsWithRatings = activeItems
     .filter(item => ratings[item.item_id] !== undefined)
     .map(item => ({
@@ -284,22 +400,14 @@ export function scoreWipRatingsOnly(params: {
       rating: ratings[item.item_id],
     }));
   
-  // Sort by rating descending to derive implicit rank
   itemsWithRatings.sort((a, b) => b.rating - a.rating);
-  
-  // Assign ranks (1 = highest rating)
   const responseItems: WipResponseItem[] = itemsWithRatings.map((item, index) => ({
     item_id: item.item_id,
     rank: index + 1,
     rating: item.rating,
   }));
   
-  return scoreWip({
-    response_id,
-    user_id,
-    items,
-    responseItems,
-  });
+  return scoreWip({ response_id, user_id, items, responseItems });
 }
 
 // Vector math helpers
@@ -339,9 +447,6 @@ function topKValuesFromVector(vec: number[], k: number): WorkValue[] {
     .map(o => o.v);
 }
 
-/**
- * Match user's work values against O*NET occupation profiles
- */
 export function matchOnetOccupations(params: {
   userScores: Record<WorkValue, ValueScore>;
   onetProfiles: OnetWorkValuesProfile[];
@@ -353,27 +458,23 @@ export function matchOnetOccupations(params: {
 } {
   const method = params.method ?? "hybrid_weighted_topk";
   const topk = params.topk ?? 3;
-
   const userVec = vectorFromScores(params.userScores);
   const userTop = topKValuesFromVector(userVec, topk);
 
   const matches = params.onetProfiles.map(p => {
     const jobVec = vectorFromOnet(p);
     const jobTop = topKValuesFromVector(jobVec, topk);
-
     let score = 0;
     if (method === "cosine") {
       score = cosine(userVec, jobVec);
     } else if (method === "pearson") {
       score = pearson(userVec, jobVec);
     } else {
-      // hybrid_weighted_topk
       const base = pearson(userVec, jobVec);
       const overlap = userTop.filter(v => jobTop.includes(v));
       const bonus = (overlap.length / topk) * 0.08;
       score = Math.max(-1, Math.min(1, base + bonus));
     }
-
     const overlaps = userTop.filter(v => jobTop.includes(v));
     return {
       onet_soc_code: p.onet_soc_code,
@@ -393,21 +494,14 @@ export function matchOnetOccupations(params: {
   return { method, matches };
 }
 
-/**
- * Convert legacy rating responses (1-5 scale) to normalized scores
- * Used for backward compatibility with existing assessment data
- */
 export function convertLegacyScores(
-  legacyScores: Record<string, number>, // category -> raw score (sum of 1-5 ratings)
+  legacyScores: Record<string, number>,
   itemsPerCategory: number = 4
 ): Record<WorkValue, ValueScore> {
-  const maxPossible = itemsPerCategory * 5; // 4 items * max rating 5 = 20
-  const minPossible = itemsPerCategory * 1; // 4 items * min rating 1 = 4
-  
+  const maxPossible = itemsPerCategory * 5;
+  const minPossible = itemsPerCategory * 1;
   const result: Record<WorkValue, ValueScore> = {} as Record<WorkValue, ValueScore>;
   const normVals: number[] = [];
-  
-  // Map legacy category names to WorkValue enum
   const categoryMap: Record<string, WorkValue> = {
     "Achievement": "Achievement",
     "Independence": "Independence",
@@ -421,20 +515,16 @@ export function convertLegacyScores(
   for (const v of WORK_VALUES) {
     const legacyKey = Object.keys(categoryMap).find(k => categoryMap[k] === v);
     const raw = legacyScores[legacyKey || v] || legacyScores[WORK_VALUE_LABELS[v]] || 0;
-    
     const normalized = ((raw - minPossible) / (maxPossible - minPossible)) * 100;
     const clamped = Math.max(0, Math.min(100, normalized));
-    
     result[v] = { raw, normalized: clamped, z: 0 };
     normVals.push(clamped);
   }
   
-  // Calculate z-scores
   const m = mean(normVals);
   const s = std(normVals);
   for (const v of WORK_VALUES) {
     result[v].z = (result[v].normalized - m) / s;
   }
-  
   return result;
 }
