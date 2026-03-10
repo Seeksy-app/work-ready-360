@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Send, ArrowUp } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,7 +11,19 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`;
 
-export default function AgentChat() {
+const STARTER_SUGGESTIONS = [
+  { emoji: '🧭', label: 'Explain my interest results' },
+  { emoji: '⚖️', label: 'What do my work values mean?' },
+  { emoji: '📄', label: 'Help improve my resume' },
+  { emoji: '🎯', label: 'Suggest careers for me' },
+  { emoji: '💡', label: 'Tips for job interviews' },
+];
+
+interface AgentChatProps {
+  onboardingComplete?: boolean;
+}
+
+export default function AgentChat({ onboardingComplete = false }: AgentChatProps) {
   const { profile, user } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -27,8 +39,8 @@ export default function AgentChat() {
     }
   }, [messages]);
 
-  const sendMessage = async () => {
-    const trimmed = input.trim();
+  const sendMessage = async (text?: string) => {
+    const trimmed = (text || input).trim();
     if (!trimmed || isLoading) return;
 
     const userMsg: Msg = { role: 'user', content: trimmed };
@@ -113,10 +125,26 @@ export default function AgentChat() {
       <ScrollArea className="flex-1 px-4" ref={scrollRef}>
         <div className="space-y-4 py-4">
           {messages.length === 0 && (
-            <div className="text-center text-muted-foreground text-sm py-8">
+            <div className="text-center text-muted-foreground text-sm py-6">
               <img src={mascot} alt="Agent360" className="h-20 w-20 mx-auto mb-4 drop-shadow-md" />
               <p className="font-medium text-foreground">Hi {firstName}! I'm Agent360 🤖</p>
               <p className="mt-1 text-xs">Ask me about assessments, resumes, career paths & more.</p>
+
+              {/* Starter suggestions — only shown after onboarding */}
+              {onboardingComplete && (
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {STARTER_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.label}
+                      onClick={() => sendMessage(s.label)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                    >
+                      <span>{s.emoji}</span>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {messages.map((msg, i) => (
@@ -168,7 +196,7 @@ export default function AgentChat() {
           />
           <Button
             size="icon"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}
             className="absolute bottom-3 right-3 rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
           >

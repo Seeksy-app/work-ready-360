@@ -418,7 +418,7 @@ export default function Dashboard() {
           </Button>
         </div>
         <div className="flex-1 min-h-0">
-          <AgentChat />
+          <AgentChat onboardingComplete={completedSteps >= 4} />
         </div>
       </aside>
 
