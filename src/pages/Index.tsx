@@ -12,6 +12,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import heroImage from '@/assets/hero-workplace.jpg';
+import logoImage from '@/assets/logo-180.jpg';
 
 export default function Index() {
   const features = [
