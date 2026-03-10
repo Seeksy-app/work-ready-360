@@ -903,6 +903,32 @@ export default function Podcast() {
                       </div>
                     )}
 
+                    {/* Voice Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Host Voice</Label>
+                        <Select value={selectedHostVoice} onValueChange={setSelectedHostVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Co-host Voice</Label>
+                        <Select value={selectedGuestVoice} onValueChange={setSelectedGuestVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <Button
                       variant="accent"
                       size="lg"
