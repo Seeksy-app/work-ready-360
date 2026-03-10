@@ -14,6 +14,7 @@ import WorkImportanceResults from "./pages/WorkImportanceResults";
 import Resume from "./pages/Resume";
 import Podcast from "./pages/Podcast";
 import CareerExplorer from "./pages/CareerExplorer";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import Admin from "./pages/Admin";
 import AdminWip from "./pages/AdminWip";
 import AdminWipSession from "./pages/AdminWipSession";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/resume" element={<Resume />} />
             <Route path="/podcast" element={<Podcast />} />
             <Route path="/careers" element={<CareerExplorer />} />
+            <Route path="/knowledge" element={<KnowledgeBase />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/wip" element={<AdminWip />} />
             <Route path="/admin/wip/:sessionId" element={<AdminWipSession />} />
