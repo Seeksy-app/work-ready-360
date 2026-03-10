@@ -347,7 +347,7 @@ export default function Podcast() {
           .single(),
         supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, linkedin_data')
           .eq('user_id', user.id)
           .single()
       ]);
