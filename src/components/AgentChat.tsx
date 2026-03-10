@@ -122,17 +122,6 @@ export default function AgentChat() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Greeting header */}
-      <div className="px-6 pt-8 pb-4 text-center">
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold">
-            {getGreeting()}, <span className="text-primary">{firstName}</span>
-          </h2>
-        </div>
-        <p className="text-sm text-muted-foreground">{getFormattedDate()}</p>
-      </div>
-
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" ref={scrollRef}>
         <div className="space-y-4 py-4">
