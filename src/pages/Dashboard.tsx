@@ -20,7 +20,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import logoColor from '@/assets/logo-color.png';
+import logoColor from '@/assets/logo-color-full.png';
 import AgentChat from '@/components/AgentChat';
 
 export default function Dashboard() {
