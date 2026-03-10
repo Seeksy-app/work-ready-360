@@ -15,6 +15,17 @@ interface ProfilePodcastRequest {
   type: 'profile';
   userName?: string;
   resumeContent?: string;
+  linkedinData?: {
+    headline?: string;
+    summary?: string;
+    job_title?: string;
+    job_company_name?: string;
+    skills?: string[];
+    experience?: Array<{ title?: string; company?: string; summary?: string }>;
+    education?: Array<{ school?: string; degrees?: string[]; majors?: string[] }>;
+    certifications?: string[];
+    industry?: string;
+  };
   interestProfilerResults?: {
     scores: Record<string, number>;
     topInterests: string[];
