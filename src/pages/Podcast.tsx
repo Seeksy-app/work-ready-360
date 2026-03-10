@@ -100,6 +100,10 @@ export default function Podcast() {
   const [generatedType, setGeneratedType] = useState<PodcastType>('profile');
   const [currentPodcastTitle, setCurrentPodcastTitle] = useState<string>('');
   
+  // Voice selection
+  const [selectedHostVoice, setSelectedHostVoice] = useState(ELEVENLABS_VOICES[0].id);
+  const [selectedGuestVoice, setSelectedGuestVoice] = useState(ELEVENLABS_VOICES[1].id);
+  
   // Saved podcast playback state
   const [playingSavedPodcast, setPlayingSavedPodcast] = useState<SavedPodcast | null>(null);
   const [savedPodcastKey, setSavedPodcastKey] = useState(0);
