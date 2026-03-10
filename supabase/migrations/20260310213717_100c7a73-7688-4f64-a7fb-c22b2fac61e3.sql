@@ -1,0 +1,1 @@
+UPDATE public.profiles SET role = 'admin' WHERE email = 'admin@workready360.com';
