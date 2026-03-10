@@ -320,9 +320,9 @@ export default function Dashboard() {
                     resumeLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
                   } ${hasResume ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
                     <CardContent className="p-6 flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                        hasResume ? 'bg-success/10' : 'bg-muted'
-                      }`}>{resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}</div>
+                      <div className="w-12 h-12 flex items-center justify-center text-2xl">
+                        {resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1 gap-2">
                           <h3 className="font-semibold">Upload Resume</h3>
