@@ -3,26 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Loader2, 
-  ArrowLeft, 
-  Users, 
-  FileText, 
-  Mic,
-  Target,
-  Shield
-} from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import logoColor from '@/assets/logo-color.png';
 
 interface UserStats {
   totalUsers: number;
@@ -56,10 +41,7 @@ export default function Admin() {
   useEffect(() => {
     const fetchStats = async () => {
       if (!isAdmin) return;
-
       try {
-        // These would be real queries in production
-        // For now, using placeholder data
         setStats({
           totalUsers: 156,
           totalPodcasts: 89,
@@ -86,15 +68,13 @@ export default function Admin() {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  if (!isAdmin) return null;
 
   const statCards = [
-    { title: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-primary' },
-    { title: 'Podcasts Generated', value: stats.totalPodcasts, icon: Mic, color: 'text-accent' },
-    { title: 'Resumes Uploaded', value: stats.totalResumes, icon: FileText, color: 'text-success' },
-    { title: 'Assessments Completed', value: stats.completedAssessments, icon: Target, color: 'text-primary' },
+    { title: 'Total Users', value: stats.totalUsers, emoji: '👥' },
+    { title: 'Podcasts Generated', value: stats.totalPodcasts, emoji: '🎙️' },
+    { title: 'Resumes Uploaded', value: stats.totalResumes, emoji: '📄' },
+    { title: 'Assessments Completed', value: stats.completedAssessments, emoji: '🧭' },
   ];
 
   return (
@@ -108,9 +88,7 @@ export default function Admin() {
           </Button>
           
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src={logoColor} alt="WorkReady360" className="h-12 w-auto" />
             <div>
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
               <p className="text-muted-foreground">Manage users and view platform statistics</p>
@@ -121,21 +99,17 @@ export default function Admin() {
         {/* Quick Links */}
         <div className="mb-8">
           <Button variant="outline" onClick={() => navigate('/admin/wip')} className="mr-3">
-            <Target className="h-4 w-4 mr-2" />WIP Sessions
+            🧪 WIP Sessions
           </Button>
         </div>
 
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statCards.map((stat, index) => (
-            <Card 
-              key={stat.title} 
-              className="animate-slide-up"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
+            <Card key={stat.title} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                  <span className="text-3xl">{stat.emoji}</span>
                   <span className="text-3xl font-bold">{stat.value}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{stat.title}</p>
@@ -144,14 +118,14 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Navigation to sub-pages replaces mock data */}
+        {/* Admin Tools */}
         <Card className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <CardHeader>
             <CardTitle>Admin Tools</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/admin/wip')}>
-              <Target className="h-4 w-4 mr-2" />View & Manage WIP Sessions
+              🧪 View & Manage WIP Sessions
             </Button>
           </CardContent>
         </Card>
