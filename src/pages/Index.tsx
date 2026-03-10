@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, Target, Heart, Sparkles, Mic } from 'lucide-react';
+import { ArrowRight, Play, Target, Heart, Sparkles, Mic, ClipboardCheck, Brain, Headphones, Briefcase } from 'lucide-react';
+import OnboardingSheet from '@/components/OnboardingSheet';
 import heroImage from '@/assets/hero-workplace.jpg';
 import editorialImage from '@/assets/hero-editorial.jpg';
 import collabImage from '@/assets/hero-collab.jpg';
