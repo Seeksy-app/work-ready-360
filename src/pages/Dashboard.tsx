@@ -261,9 +261,7 @@ export default function Dashboard() {
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <CardContent className="p-6 flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                          assessment.completed ? 'bg-success/10' : 'bg-muted'
-                        }`}>
+                        <div className="w-12 h-12 flex items-center justify-center text-2xl">
                           {locked ? <Lock className="h-5 w-5 text-muted-foreground" /> : assessment.emoji}
                         </div>
                         <div className="flex-1">
