@@ -213,17 +213,27 @@ export default function Dashboard() {
                 <Progress value={progress} className="h-2" />
               </div>
               <div className="flex flex-wrap gap-4">
-                {steps.map((step) => (
-                  <div
-                    key={step.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm ${
-                      step.completed ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                    <span>{step.title}</span>
-                  </div>
-                ))}
+                {steps.map((step, index) => {
+                  const isCurrent = index === currentStepIndex;
+                  const isNext = index === currentStepIndex + 1 && currentStepIndex >= 0 && !step.completed;
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        step.completed
+                          ? 'bg-success/15 text-success'
+                          : isCurrent
+                            ? 'bg-primary/20 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            : isNext
+                              ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                              : 'bg-muted/60 text-muted-foreground/50'
+                      }`}
+                    >
+                      {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                      <span>{step.title}</span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
