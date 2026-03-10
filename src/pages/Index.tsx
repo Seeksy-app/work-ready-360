@@ -22,19 +22,20 @@ export default function Index() {
 
         {/* Floating white card — editorial style */}
         <div className="container mx-auto px-4 relative z-10 flex justify-center">
-          <div className="max-w-xl bg-card/50 backdrop-blur-md p-8 md:p-12 rounded-sm shadow-xl animate-slide-up text-center">
+          <div className="max-w-2xl bg-card/30 backdrop-blur-sm p-8 md:p-12 rounded-sm shadow-xl animate-slide-up text-center">
             <img
               src={logoColor}
               alt="WorkReady360 Leadership Project"
               className="h-24 md:h-32 mb-6 object-contain mx-auto"
             />
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-foreground font-display">
-              Unlock Your{' '}
-              <span className="text-primary italic">Potential</span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white font-display drop-shadow-lg">
+              Stop Dreading Monday.{' '}
+              <span className="text-primary italic">Start Living&nbsp;It.</span>
             </h1>
-            <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed">
-              Building Work Readiness with Happiness, Engagement&nbsp;&amp;&nbsp;Productivity.
-              Discover your ideal career path through personalized assessments and AI&#8209;powered insights.
+            <p className="mt-4 text-base md:text-lg text-white/90 leading-relaxed drop-shadow-md">
+              You deserve a career that makes you want to get out of bed.
+              We'll help you find purpose, reignite motivation, and build a work&nbsp;life
+              powered by passion — through AI&#8209;powered&nbsp;insights.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/auth">
