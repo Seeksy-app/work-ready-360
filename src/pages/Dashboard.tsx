@@ -42,18 +42,19 @@ export default function Dashboard() {
     const checkCompletionStatus = async () => {
       if (!user) return;
 
-      const [interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
+      const [profileRes, interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
+        supabase.from('profiles').select('zip_code').eq('user_id', user.id).single(),
         supabase.from('interest_profiler_results').select('id').eq('user_id', user.id).limit(1),
         supabase.from('work_importance_results').select('id').eq('user_id', user.id).limit(1),
         supabase.from('resumes').select('id').eq('user_id', user.id).limit(1),
         supabase.from('podcasts').select('id').eq('user_id', user.id).eq('status', 'completed').limit(1),
       ]);
 
+      setHasProfileComplete(!!(profileRes.data as any)?.zip_code);
       setHasInterestResults((interestRes.data?.length || 0) > 0);
       setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
       setHasResume((resumeRes.data?.length || 0) > 0);
       setHasPodcasts((podcastRes.data?.length || 0) > 0);
-      setHasExploredCareers((interestRes.data?.length || 0) > 0 || (workRes.data?.length || 0) > 0);
     };
 
     checkCompletionStatus();
