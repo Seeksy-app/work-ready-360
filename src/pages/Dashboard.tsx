@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import confetti from 'canvas-confetti';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +32,31 @@ export default function Dashboard() {
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [hasPodcasts, setHasPodcasts] = useState(false);
+  const prevCompleted = useRef<Set<string>>(new Set());
+
+  const fireConfetti = () => {
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#10b981', '#6366f1', '#ec4899'] });
+  };
+
+  // Track newly completed steps and celebrate
+  useEffect(() => {
+    const currentCompleted = new Set<string>();
+    if (hasProfileComplete) currentCompleted.add('profile');
+    if (hasInterestResults) currentCompleted.add('interest');
+    if (hasWorkImportanceResults) currentCompleted.add('wip');
+    if (hasResume) currentCompleted.add('resume');
+    if (hasPodcasts) currentCompleted.add('podcast');
+
+    if (prevCompleted.current.size > 0) {
+      for (const key of currentCompleted) {
+        if (!prevCompleted.current.has(key)) {
+          fireConfetti();
+          break;
+        }
+      }
+    }
+    prevCompleted.current = currentCompleted;
+  }, [hasProfileComplete, hasInterestResults, hasWorkImportanceResults, hasResume, hasPodcasts]);
 
   useEffect(() => {
     if (!loading && !user) {
