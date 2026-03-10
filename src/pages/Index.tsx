@@ -26,7 +26,7 @@ export default function Index() {
             <img
               src={logoColor}
               alt="WorkReady360 Leadership Project"
-              className="h-24 md:h-32 mb-6 object-contain"
+              className="h-24 md:h-32 mb-6 object-contain mx-auto"
             />
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-foreground font-display">
               Unlock Your{' '}
