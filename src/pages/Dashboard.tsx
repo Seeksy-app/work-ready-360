@@ -17,6 +17,7 @@ import {
   MessageSquare,
   PanelRightClose,
   PanelRightOpen,
+  Lock,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import logoColor from '@/assets/logo-color.png';
