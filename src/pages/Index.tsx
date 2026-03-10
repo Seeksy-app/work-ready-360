@@ -12,6 +12,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import heroImage from '@/assets/hero-workplace.jpg';
+import logoImage from '@/assets/logo-180.jpg';
 
 export default function Index() {
   const features = [
@@ -49,9 +50,7 @@ export default function Index() {
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Mic className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <img src={logoImage} alt="WorkReady360" className="h-10 w-10 rounded-lg" />
             <span className="font-bold text-lg text-foreground">WorkReady360</span>
           </div>
           
@@ -230,9 +229,7 @@ export default function Index() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Mic className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <img src={logoImage} alt="WorkReady360" className="h-8 w-8 rounded-lg" />
               <span className="font-bold text-foreground">WorkReady360</span>
             </div>
             <p className="text-sm text-muted-foreground">
