@@ -219,14 +219,12 @@ export default function Dashboard() {
                   return (
                     <div
                       key={step.id}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         step.completed
                           ? 'bg-success/15 text-success'
                           : isCurrent
-                            ? 'bg-primary/20 text-primary-foreground ring-2 ring-primary animate-pulse'
-                            : isNext
-                              ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                              : 'bg-muted/60 text-muted-foreground/50'
+                            ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            : 'bg-muted/60 text-muted-foreground/50'
                       }`}
                     >
                       {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
