@@ -26,11 +26,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(true);
 
+  const [hasProfileComplete, setHasProfileComplete] = useState(false);
   const [hasInterestResults, setHasInterestResults] = useState(false);
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [hasPodcasts, setHasPodcasts] = useState(false);
-  const [hasExploredCareers, setHasExploredCareers] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
