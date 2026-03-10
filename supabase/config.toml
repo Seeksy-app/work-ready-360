@@ -2,3 +2,6 @@ project_id = "jdfjamhvedojgibvjgcb"
 
 [functions.generate-podcast]
 verify_jwt = false
+
+[functions.linkedin-enrich]
+verify_jwt = false

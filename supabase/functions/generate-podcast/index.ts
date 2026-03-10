@@ -15,6 +15,17 @@ interface ProfilePodcastRequest {
   type: 'profile';
   userName?: string;
   resumeContent?: string;
+  linkedinData?: {
+    headline?: string;
+    summary?: string;
+    job_title?: string;
+    job_company_name?: string;
+    skills?: string[];
+    experience?: Array<{ title?: string; company?: string; summary?: string }>;
+    education?: Array<{ school?: string; degrees?: string[]; majors?: string[] }>;
+    certifications?: string[];
+    industry?: string;
+  };
   interestProfilerResults?: {
     scores: Record<string, number>;
     topInterests: string[];
@@ -128,6 +139,19 @@ Scores: ${JSON.stringify(data.workImportanceResults.scores)}
   if (data.resumeContent) {
     userPrompt += `**Resume Summary:**
 ${data.resumeContent.slice(0, 2000)}
+
+`;
+  }
+
+  if (data.linkedinData) {
+    const li = data.linkedinData;
+    userPrompt += `**LinkedIn Profile:**
+Current Role: ${li.job_title || 'N/A'} at ${li.job_company_name || 'N/A'}
+Headline: ${li.headline || 'N/A'}
+Industry: ${li.industry || 'N/A'}
+Skills: ${(li.skills || []).slice(0, 10).join(', ') || 'N/A'}
+Recent Experience: ${(li.experience || []).slice(0, 3).map(e => `${e.title} at ${e.company}`).join('; ') || 'N/A'}
+Education: ${(li.education || []).slice(0, 2).map(e => `${(e.degrees || []).join(', ')} from ${e.school}`).join('; ') || 'N/A'}
 
 `;
   }

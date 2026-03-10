@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavedPodcasts from '@/components/SavedPodcasts';
+import PreGeneratePrompt from '@/components/PreGeneratePrompt';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -107,6 +108,11 @@ export default function Podcast() {
   // Saved podcast playback state
   const [playingSavedPodcast, setPlayingSavedPodcast] = useState<SavedPodcast | null>(null);
   const [savedPodcastKey, setSavedPodcastKey] = useState(0);
+  
+  // Pre-generate prompt state
+  const [showPrePrompt, setShowPrePrompt] = useState(false);
+  const [hasLinkedIn, setHasLinkedIn] = useState(false);
+  const [pendingGenerateType, setPendingGenerateType] = useState<'profile' | 'career' | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -153,7 +159,7 @@ export default function Podcast() {
     if (!user) return;
     
     try {
-      const [interestResult, valuesResult, resumeResult] = await Promise.all([
+      const [interestResult, valuesResult, resumeResult, profileResult2] = await Promise.all([
         supabase
           .from('interest_profiler_results')
           .select('top_interests, scores')
@@ -173,12 +179,19 @@ export default function Podcast() {
           .select('id')
           .eq('user_id', user.id)
           .limit(1)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('linkedin_data')
+          .eq('user_id', user.id)
+          .single()
       ]);
       
       const hasInterests = !!interestResult.data;
       const hasValues = !!valuesResult.data;
       const hasResume = !!resumeResult.data;
+      const linkedInData = (profileResult2.data as any)?.linkedin_data;
+      setHasLinkedIn(!!linkedInData);
       
       setProfileSummary({
         hasResume,
@@ -276,7 +289,26 @@ export default function Podcast() {
     }
   };
 
-  const handleGenerateProfile = async () => {
+  // Wrapper that checks for resume/LinkedIn before generating
+  const tryGenerate = (type: 'profile' | 'career') => {
+    const missingResume = !profileSummary?.hasResume;
+    const missingLinkedIn = !hasLinkedIn;
+    if (missingResume || missingLinkedIn) {
+      setPendingGenerateType(type);
+      setShowPrePrompt(true);
+      return;
+    }
+    if (type === 'profile') doGenerateProfile();
+    else doGenerateCareer();
+  };
+
+  const handlePrePromptContinue = () => {
+    if (pendingGenerateType === 'profile') doGenerateProfile();
+    else if (pendingGenerateType === 'career') doGenerateCareer();
+    setPendingGenerateType(null);
+  };
+
+  const doGenerateProfile = async () => {
     if (!user) {
       toast.error('Please sign in to generate your podcast');
       return;
@@ -315,7 +347,7 @@ export default function Podcast() {
           .single(),
         supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, linkedin_data')
           .eq('user_id', user.id)
           .single()
       ]);
@@ -349,6 +381,12 @@ export default function Podcast() {
         requestBody.resumeContent = typeof parsedContent === 'string' 
           ? parsedContent 
           : JSON.stringify(parsedContent);
+      }
+      
+      // Add LinkedIn data if available
+      const linkedInData = (profileResult.data as any)?.linkedin_data;
+      if (linkedInData) {
+        requestBody.linkedinData = linkedInData;
       }
       
       const response = await fetch(
@@ -395,7 +433,7 @@ export default function Podcast() {
     }
   };
 
-  const handleGenerateCareer = async () => {
+  const doGenerateCareer = async () => {
     if (!selectedCareer) {
       toast.error('Please select a career first');
       return;
@@ -771,7 +809,7 @@ export default function Podcast() {
                       variant="accent"
                       size="lg"
                       className="w-full"
-                      onClick={handleGenerateProfile}
+                      onClick={() => tryGenerate('profile')}
                       disabled={isGenerating || !hasProfileData}
                     >
                       {isGenerating ? (
@@ -933,7 +971,7 @@ export default function Podcast() {
                       variant="accent"
                       size="lg"
                       className="w-full"
-                      onClick={handleGenerateCareer}
+                      onClick={() => tryGenerate('career')}
                       disabled={isGenerating || !selectedCareer}
                     >
                       {isGenerating ? (
@@ -1109,6 +1147,16 @@ export default function Podcast() {
           </div>
         )}
       </div>
+      {user && (
+        <PreGeneratePrompt
+          open={showPrePrompt}
+          onOpenChange={setShowPrePrompt}
+          hasResume={profileSummary?.hasResume || false}
+          hasLinkedIn={hasLinkedIn}
+          userId={user.id}
+          onContinue={handlePrePromptContinue}
+        />
+      )}
     </div>
   );
 }
