@@ -36,7 +36,7 @@ export default function Index() {
               Building Work Readiness with Happiness, Engagement&nbsp;&amp;&nbsp;Productivity.
               Discover your ideal career path through personalized assessments and AI&#8209;powered insights.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/auth">
                 <Button variant="hero" size="xl" className="w-full sm:w-auto uppercase tracking-wider text-sm font-bold">
                   Get Started
