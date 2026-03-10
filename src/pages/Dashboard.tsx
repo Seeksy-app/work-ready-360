@@ -121,7 +121,7 @@ export default function Dashboard() {
     { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
     { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults },
     { id: 4, title: 'Upload Resume', completed: hasResume },
-    { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
+    { id: 5, title: 'Create Career Podcast', completed: hasPodcasts },
   ];
 
   // Determine the index of the first incomplete step
