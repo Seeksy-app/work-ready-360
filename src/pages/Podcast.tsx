@@ -108,6 +108,11 @@ export default function Podcast() {
   // Saved podcast playback state
   const [playingSavedPodcast, setPlayingSavedPodcast] = useState<SavedPodcast | null>(null);
   const [savedPodcastKey, setSavedPodcastKey] = useState(0);
+  
+  // Pre-generate prompt state
+  const [showPrePrompt, setShowPrePrompt] = useState(false);
+  const [hasLinkedIn, setHasLinkedIn] = useState(false);
+  const [pendingGenerateType, setPendingGenerateType] = useState<'profile' | 'career' | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
