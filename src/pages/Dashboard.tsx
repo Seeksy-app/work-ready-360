@@ -264,6 +264,18 @@ export default function Dashboard() {
       isResource: true,
       resourceLocked: !podcastLibraryUnlocked,
     },
+    {
+      id: 'knowledge',
+      title: 'Knowledge Base',
+      description: 'Explore occupations, education, reading & tips',
+      emoji: '📚',
+      completed: false,
+      skipped: false,
+      stepIndex: -1,
+      href: '/knowledge',
+      isResource: true,
+      resourceLocked: !(hasInterestResults && hasWorkImportanceResults),
+    },
   ];
 
   const CompletionBadge = ({ completed, skipped, label }: { completed: boolean; skipped?: boolean; label?: string }) => {

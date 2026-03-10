@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.linkedin-enrich]
 verify_jwt = false
+
+[functions.resume-builder]
+verify_jwt = false
