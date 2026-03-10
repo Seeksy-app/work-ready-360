@@ -965,7 +965,7 @@ export default function Podcast() {
                       variant="accent"
                       size="lg"
                       className="w-full"
-                      onClick={handleGenerateCareer}
+                      onClick={() => tryGenerate('career')}
                       disabled={isGenerating || !selectedCareer}
                     >
                       {isGenerating ? (
