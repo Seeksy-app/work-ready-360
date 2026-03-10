@@ -106,7 +106,7 @@ export default {
         "scale-in": "scale-in 0.4s ease-out forwards",
       },
       boxShadow: {
-        glow: "0 0 30px hsl(180 65% 25% / 0.2)",
+        glow: "0 0 30px hsl(45 95% 55% / 0.25)",
       },
     },
   },
