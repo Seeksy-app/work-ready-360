@@ -262,7 +262,7 @@ export default function Dashboard() {
                 onClick={() => setChatOpen(!chatOpen)}
                 className="md:hidden text-accent-foreground hover:bg-accent-foreground/10"
               >
-                {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+                {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <img src={mascot} alt="Chat" className="h-5 w-5 rounded-full" />}
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
