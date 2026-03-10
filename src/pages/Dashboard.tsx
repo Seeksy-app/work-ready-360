@@ -20,7 +20,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import logoColor from '@/assets/logo-color.png';
+import logoColor from '@/assets/logo-color-full.png';
 import AgentChat from '@/components/AgentChat';
 
 export default function Dashboard() {
@@ -150,8 +150,7 @@ export default function Dashboard() {
         <header className="border-b bg-accent backdrop-blur-sm sticky top-0 z-50">
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={logoColor} alt="WorkReady360" className="h-9 w-auto" />
-              <span className="font-semibold text-lg hidden sm:inline text-accent-foreground">WorkReady360</span>
+              <img src={logoColor} alt="WorkReady360" className="h-10 w-auto" />
             </div>
             
             <div className="flex items-center gap-3">
@@ -220,14 +219,12 @@ export default function Dashboard() {
                   return (
                     <div
                       key={step.id}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         step.completed
                           ? 'bg-success/15 text-success'
                           : isCurrent
-                            ? 'bg-primary/20 text-primary-foreground ring-2 ring-primary animate-pulse'
-                            : isNext
-                              ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                              : 'bg-muted/60 text-muted-foreground/50'
+                            ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            : 'bg-muted/60 text-muted-foreground/50'
                       }`}
                     >
                       {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -242,7 +239,7 @@ export default function Dashboard() {
           {/* Assessments */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Career Assessments</h2>
+              <h2 className="text-xl font-semibold">Resources</h2>
               {assessmentProgress > 0 && assessmentProgress < 100 && (
                 <Badge variant="secondary" className="gap-1">{Math.round(assessmentProgress)}% Complete</Badge>
               )}
@@ -264,9 +261,7 @@ export default function Dashboard() {
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <CardContent className="p-6 flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                          assessment.completed ? 'bg-success/10' : 'bg-muted'
-                        }`}>
+                        <div className="w-12 h-12 flex items-center justify-center text-2xl">
                           {locked ? <Lock className="h-5 w-5 text-muted-foreground" /> : assessment.emoji}
                         </div>
                         <div className="flex-1">
@@ -297,9 +292,7 @@ export default function Dashboard() {
               hasProfileComplete ? 'border-success/30' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
             }`} style={{ animationDelay: '0.2s' }}>
               <CardContent className="p-6 flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                  hasProfileComplete ? 'bg-success/10' : 'bg-muted'
-                }`}>👤</div>
+                <div className="w-12 h-12 flex items-center justify-center text-2xl">👤</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Complete Profile</h3>
@@ -327,9 +320,9 @@ export default function Dashboard() {
                     resumeLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
                   } ${hasResume ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
                     <CardContent className="p-6 flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                        hasResume ? 'bg-success/10' : 'bg-muted'
-                      }`}>{resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}</div>
+                      <div className="w-12 h-12 flex items-center justify-center text-2xl">
+                        {resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1 gap-2">
                           <h3 className="font-semibold">Upload Resume</h3>
@@ -361,9 +354,9 @@ export default function Dashboard() {
                   podcastLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-accent/30 cursor-pointer group'
                 } ${hasPodcasts ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
                   <CardContent className="p-6 flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                      hasPodcasts ? 'bg-success/10' : 'bg-muted'
-                    }`}>{podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}</div>
+                    <div className="w-12 h-12 flex items-center justify-center text-2xl">
+                      {podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}
+                    </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Generate Podcast</h3>
