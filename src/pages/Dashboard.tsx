@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import mascot from '@/assets/agent360-mascot.png';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,8 +15,6 @@ import {
   Circle,
   ArrowRight,
   LogOut,
-  Sparkles,
-  MessageSquare,
   PanelRightClose,
   Lock,
 } from 'lucide-react';
@@ -263,7 +262,7 @@ export default function Dashboard() {
                 onClick={() => setChatOpen(!chatOpen)}
                 className="md:hidden text-accent-foreground hover:bg-accent-foreground/10"
               >
-                {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+                {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <img src={mascot} alt="Chat" className="h-5 w-5 rounded-full" />}
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
@@ -411,7 +410,7 @@ export default function Dashboard() {
       <aside className={`${chatOpen ? 'w-[380px]' : 'w-0'} hidden md:flex flex-col border-l border-border bg-card transition-all duration-300 overflow-hidden flex-shrink-0`}>
         <div className="flex items-center justify-between px-4 h-16 border-b border-border">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <img src={mascot} alt="Agent360" className="h-7 w-7 rounded-full object-cover" />
             <span className="font-semibold text-sm">Agent360</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="h-7 w-7">
@@ -425,14 +424,12 @@ export default function Dashboard() {
 
       {/* Chat toggle */}
       {!chatOpen && (
-        <Button
-          variant="outline"
-          size="icon"
+        <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-lg bg-accent text-accent-foreground hover:bg-accent/90 border-0"
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 overflow-hidden border-2 border-primary/30"
         >
-          <MessageSquare className="h-5 w-5" />
-        </Button>
+          <img src={mascot} alt="Open Agent360" className="h-full w-full object-cover" />
+        </button>
       )}
 
       {/* Profile Sheet */}
