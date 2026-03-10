@@ -215,15 +215,14 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-4">
                 {steps.map((step, index) => {
                   const isCurrent = index === currentStepIndex;
-                  const isNext = index === currentStepIndex + 1 && currentStepIndex >= 0 && !step.completed;
                   return (
                     <div
                       key={step.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         step.completed
                           ? 'bg-success/15 text-success'
                           : isCurrent
-                            ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            ? 'bg-primary/30 text-primary ring-2 ring-primary animate-pulse'
                             : 'bg-muted/60 text-muted-foreground/50'
                       }`}
                     >
