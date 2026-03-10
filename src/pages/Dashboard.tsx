@@ -150,7 +150,7 @@ export default function Dashboard() {
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={logoColor} alt="WorkReady360" className="h-9 w-auto" />
-              <span className="font-semibold text-lg hidden sm:inline">WorkReady360</span>
+              <span className="font-semibold text-lg hidden sm:inline text-accent-foreground">WorkReady360</span>
             </div>
             
             <div className="flex items-center gap-3">
