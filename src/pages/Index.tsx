@@ -10,8 +10,11 @@ import logoColor from '@/assets/logo-color.png';
 import logoSmall from '@/assets/logo-180.jpg';
 
 export default function Index() {
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      <OnboardingSheet open={onboardingOpen} onOpenChange={setOnboardingOpen} />
 
       {/* ─── HERO: Full-bleed image + floating card like Hello Sunshine ─── */}
       <section className="relative min-h-[90vh] flex items-center">
