@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import mascot from '@/assets/agent360-mascot.png';
+import logo360 from '@/assets/logo-360.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
