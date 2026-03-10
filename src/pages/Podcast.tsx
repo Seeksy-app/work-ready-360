@@ -383,6 +383,12 @@ export default function Podcast() {
           : JSON.stringify(parsedContent);
       }
       
+      // Add LinkedIn data if available
+      const linkedInData = (profileResult.data as any)?.linkedin_data;
+      if (linkedInData) {
+        requestBody.linkedinData = linkedInData;
+      }
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-podcast`,
         {
