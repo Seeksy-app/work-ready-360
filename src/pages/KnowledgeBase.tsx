@@ -192,8 +192,8 @@ export default function KnowledgeBase() {
                     )}
                     {selectedCareer.outlook && (
                       <div className="flex flex-wrap gap-3">
-                        {selectedCareer.outlook.salary && (
-                          <Badge variant="secondary" className="gap-1"><DollarSign className="h-3 w-3" />{selectedCareer.outlook.salary}</Badge>
+                        {selectedCareer.outlook.salary?.annual_median && (
+                          <Badge variant="secondary" className="gap-1"><DollarSign className="h-3 w-3" />${selectedCareer.outlook.salary.annual_median.toLocaleString()}/yr</Badge>
                         )}
                         {selectedCareer.outlook.description && (
                           <Badge variant="secondary" className="gap-1"><TrendingUp className="h-3 w-3" />{selectedCareer.outlook.description}</Badge>
