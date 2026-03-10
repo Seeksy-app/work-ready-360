@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import mascot from '@/assets/agent360-mascot.png';
+import logo360 from '@/assets/logo-360.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -116,6 +117,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
+
+  // Auto-open profile sheet for new users who haven't completed their profile
+  useEffect(() => {
+    if (!loading && user && !hasProfileComplete && !profileSheetOpen) {
+      // Small delay so the dashboard renders first
+      const timer = setTimeout(() => setProfileSheetOpen(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, hasProfileComplete]);
 
   if (loading) {
     return (
@@ -247,6 +257,7 @@ export default function Dashboard() {
         <header className="border-b bg-accent backdrop-blur-sm sticky top-0 z-50">
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <img src={logo360} alt="WorkReady360" className="h-9 w-9 rounded-lg object-cover" />
               <span className="text-xl font-bold text-accent-foreground tracking-tight">WorkReady360</span>
             </div>
 
@@ -412,6 +423,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <img src={mascot} alt="Agent360" className="h-7 w-7 rounded-full object-cover" />
             <span className="font-semibold text-sm">Agent360</span>
+            <span className="text-xs font-bold text-primary">360</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="h-7 w-7">
             <PanelRightClose className="h-4 w-4" />

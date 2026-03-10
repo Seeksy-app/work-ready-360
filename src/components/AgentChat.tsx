@@ -126,7 +126,6 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
         <div className="space-y-4 py-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground text-sm py-6">
-              <img src={mascot} alt="Agent360" className="h-20 w-20 mx-auto mb-4 drop-shadow-md" />
               <p className="font-medium text-foreground">Hi {firstName}! I'm Agent360 🤖</p>
               <p className="mt-1 text-xs">Ask me about assessments, resumes, career paths & more.</p>
 
