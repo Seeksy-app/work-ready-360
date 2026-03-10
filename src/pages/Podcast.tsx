@@ -803,7 +803,7 @@ export default function Podcast() {
                       variant="accent"
                       size="lg"
                       className="w-full"
-                      onClick={handleGenerateProfile}
+                      onClick={() => tryGenerate('profile')}
                       disabled={isGenerating || !hasProfileData}
                     >
                       {isGenerating ? (
