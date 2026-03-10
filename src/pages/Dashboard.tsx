@@ -87,13 +87,14 @@ export default function Dashboard() {
     },
   ];
 
-  const assessmentsComplete = hasInterestResults && hasWorkImportanceResults;
   const assessmentProgress = ((hasInterestResults ? 1 : 0) + (hasWorkImportanceResults ? 1 : 0)) / 2 * 100;
 
   const steps = [
-    { id: 1, title: 'Complete Assessments', completed: assessmentsComplete },
-    { id: 2, title: 'Explore Careers', completed: hasExploredCareers },
-    { id: 3, title: 'Generate Podcast', completed: hasPodcasts },
+    { id: 1, title: 'Complete Profile', completed: hasProfileComplete },
+    { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
+    { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults },
+    { id: 4, title: 'Upload Resume', completed: hasResume },
+    { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
   ];
 
   const completedSteps = steps.filter(s => s.completed).length;
