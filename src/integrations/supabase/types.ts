@@ -95,6 +95,8 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          linkedin_data: Json | null
+          linkedin_url: string | null
           notifications_enabled: boolean | null
           role: string
           updated_at: string
@@ -106,6 +108,8 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          linkedin_data?: Json | null
+          linkedin_url?: string | null
           notifications_enabled?: boolean | null
           role?: string
           updated_at?: string
@@ -117,6 +121,8 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          linkedin_data?: Json | null
+          linkedin_url?: string | null
           notifications_enabled?: boolean | null
           role?: string
           updated_at?: string
