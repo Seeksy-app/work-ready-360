@@ -350,15 +350,20 @@ export default function Dashboard() {
             })()}
           </div>
 
-          {/* Podcast */}
-          <Link to="/podcast">
-            <Card className={`hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 ${
-              hasPodcasts ? 'border-success/30' : 'border-dashed'
-            } animate-slide-up`} style={{ animationDelay: '0.3s' }}>
-              <CardContent className="p-6 flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                  hasPodcasts ? 'bg-success/10' : 'bg-muted'
-                }`}>🎙️</div>
+          {/* Podcast — step index 4 */}
+          {(() => {
+            const podcastLocked = !isStepUnlocked(4);
+            const PodWrapper = podcastLocked ? 'div' : Link;
+            const podProps = podcastLocked ? {} : { to: '/podcast' };
+            return (
+              <PodWrapper {...(podProps as any)}>
+                <Card className={`border-2 animate-slide-up ${
+                  podcastLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-accent/30 cursor-pointer group'
+                } ${hasPodcasts ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
+                  <CardContent className="p-6 flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                      hasPodcasts ? 'bg-success/10' : 'bg-muted'
+                    }`}>{podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Generate Podcast</h3>
