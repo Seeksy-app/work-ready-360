@@ -1147,6 +1147,16 @@ export default function Podcast() {
           </div>
         )}
       </div>
+      {user && (
+        <PreGeneratePrompt
+          open={showPrePrompt}
+          onOpenChange={setShowPrePrompt}
+          hasResume={profileSummary?.hasResume || false}
+          hasLinkedIn={hasLinkedIn}
+          userId={user.id}
+          onContinue={handlePrePromptContinue}
+        />
+      )}
     </div>
   );
 }
