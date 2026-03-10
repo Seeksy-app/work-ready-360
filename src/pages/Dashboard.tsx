@@ -292,8 +292,9 @@ export default function Dashboard() {
 
           {/* Profile & Resume */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-              hasProfileComplete ? 'border-success/30' : ''
+            {/* Profile card — step index 0 */}
+            <Card className={`h-full transition-all duration-300 animate-slide-up ${
+              hasProfileComplete ? 'border-success/30' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
             }`} style={{ animationDelay: '0.2s' }}>
               <CardContent className="p-6 flex items-start gap-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
@@ -315,30 +316,38 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Link to="/resume">
-              <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                hasResume ? 'border-success/30' : ''
-              }`} style={{ animationDelay: '0.25s' }}>
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    hasResume ? 'bg-success/10' : 'bg-muted'
-                  }`}>📄</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <h3 className="font-semibold">Upload Resume</h3>
-                      <CompletionBadge completed={hasResume} label="Uploaded" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
-                    <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                      hasResume ? 'text-success' : 'text-primary'
-                    }`}>
-                      {hasResume ? 'View Resume' : 'Upload Now'}
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            {/* Resume card — step index 3 */}
+            {(() => {
+              const resumeLocked = !isStepUnlocked(3);
+              const ResumeWrapper = resumeLocked ? 'div' : Link;
+              const resumeProps = resumeLocked ? {} : { to: '/resume' };
+              return (
+                <ResumeWrapper {...(resumeProps as any)}>
+                  <Card className={`h-full transition-all duration-300 animate-slide-up ${
+                    resumeLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
+                  } ${hasResume ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
+                    <CardContent className="p-6 flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        hasResume ? 'bg-success/10' : 'bg-muted'
+                      }`}>{resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <h3 className="font-semibold">Upload Resume</h3>
+                          <CompletionBadge completed={hasResume} label="Uploaded" />
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
+                        <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                          resumeLocked ? 'text-muted-foreground' : hasResume ? 'text-success' : 'text-primary'
+                        }`}>
+                          {resumeLocked ? 'Complete previous steps first' : hasResume ? 'View Resume' : 'Upload Now'}
+                          {!resumeLocked && <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </ResumeWrapper>
+              );
+            })()}
           </div>
 
           {/* Podcast */}
