@@ -326,6 +326,8 @@ export default function Podcast() {
         userName: profileResult.data?.full_name || 'our listener',
         userId: user.id,
         savePodcast: true,
+        hostVoiceId: selectedHostVoice,
+        guestVoiceId: selectedGuestVoice,
       };
       
       if (interestResult.data) {
