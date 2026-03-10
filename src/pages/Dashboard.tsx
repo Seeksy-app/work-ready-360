@@ -15,8 +15,6 @@ import {
   Circle,
   ArrowRight,
   LogOut,
-  Sparkles,
-  MessageSquare,
   PanelRightClose,
   Lock,
 } from 'lucide-react';
