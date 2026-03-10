@@ -121,7 +121,7 @@ export default function Dashboard() {
     { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
     { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults },
     { id: 4, title: 'Upload Resume', completed: hasResume },
-    { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
+    { id: 5, title: 'Create Career Podcast', completed: hasPodcasts },
   ];
 
   // Determine the index of the first incomplete step
@@ -215,15 +215,14 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-4">
                 {steps.map((step, index) => {
                   const isCurrent = index === currentStepIndex;
-                  const isNext = index === currentStepIndex + 1 && currentStepIndex >= 0 && !step.completed;
                   return (
                     <div
                       key={step.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         step.completed
                           ? 'bg-success/15 text-success'
                           : isCurrent
-                            ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            ? 'bg-primary/30 text-primary ring-2 ring-primary animate-pulse'
                             : 'bg-muted/60 text-muted-foreground/50'
                       }`}
                     >
@@ -343,7 +342,7 @@ export default function Dashboard() {
             })()}
           </div>
 
-          {/* Podcast — step index 4 */}
+          {/* Career Podcast — step index 4 */}
           {(() => {
             const podcastLocked = !isStepUnlocked(4);
             const PodWrapper = podcastLocked ? 'div' : Link;
@@ -357,29 +356,51 @@ export default function Dashboard() {
                     <div className="w-12 h-12 flex items-center justify-center text-2xl">
                       {podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}
                     </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1 gap-2">
-                    <h3 className="font-semibold">Generate Podcast</h3>
-                    <CompletionBadge completed={hasPodcasts} label="Generated" />
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">Create your personalized 3-5 minute career podcast with AI</p>
-                  <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                    podcastLocked ? 'text-muted-foreground' : hasPodcasts ? 'text-success' : 'text-accent'
-                  }`}>
-                    {podcastLocked ? 'Complete previous steps first' : (
-                      <>
-                        <span className="mr-1">▶</span>
-                        {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
-                        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </PodWrapper>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1 gap-2">
+                        <h3 className="font-semibold">Create Your Career Podcast</h3>
+                        <CompletionBadge completed={hasPodcasts} label="Generated" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Generate a personalized two-person career podcast using your assessment scores and resume — choose short (2-3 min) or long (5-8 min)
+                      </p>
+                      <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                        podcastLocked ? 'text-muted-foreground' : hasPodcasts ? 'text-success' : 'text-accent'
+                      }`}>
+                        {podcastLocked ? 'Complete previous steps first' : (
+                          <>
+                            <span className="mr-1">▶</span>
+                            {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
+                            <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </PodWrapper>
             );
           })()}
+
+          {/* Curated Podcasts — under Resources, not a step */}
+          <Card className="animate-slide-up hover:shadow-lg hover:border-primary/30 cursor-pointer group transition-all duration-300" style={{ animationDelay: '0.35s' }}>
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className="w-12 h-12 flex items-center justify-center text-2xl">🎧</div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <h3 className="font-semibold">Curated Podcast Library</h3>
+                  <Badge variant="secondary" className="text-xs">Resource</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Browse a curated list of career-focused podcasts to listen to
+                </p>
+                <div className="flex items-center text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                  Browse Podcasts
+                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
 
