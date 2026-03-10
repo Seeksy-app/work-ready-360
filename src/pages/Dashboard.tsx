@@ -249,37 +249,44 @@ export default function Dashboard() {
               {assessmentProgress === 100 && <CompletionBadge completed={true} label="All Complete" />}
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              {assessments.map((assessment, index) => (
-                <Link key={assessment.id} to={assessment.href}>
-                  <Card 
-                    className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                      assessment.completed ? 'border-success/30' : ''
-                    }`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <CardContent className="p-6 flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                        assessment.completed ? 'bg-success/10' : 'bg-muted'
-                      }`}>
-                        {assessment.emoji}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1 gap-2">
-                          <h3 className="font-semibold">{assessment.title}</h3>
-                          <CompletionBadge completed={assessment.completed} />
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{assessment.description}</p>
-                        <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                          assessment.completed ? 'text-success' : 'text-primary'
+              {assessments.map((assessment, index) => {
+                // Interest = step index 1, Work Importance = step index 2
+                const stepIndex = index === 0 ? 1 : 2;
+                const locked = !isStepUnlocked(stepIndex);
+                const Wrapper = locked ? 'div' : Link;
+                const wrapperProps = locked ? {} : { to: assessment.href };
+                return (
+                  <Wrapper key={assessment.id} {...(wrapperProps as any)}>
+                    <Card 
+                      className={`h-full transition-all duration-300 animate-slide-up ${
+                        locked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
+                      } ${assessment.completed ? 'border-success/30' : ''}`}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <CardContent className="p-6 flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                          assessment.completed ? 'bg-success/10' : 'bg-muted'
                         }`}>
-                          {assessment.completed ? 'View Results' : 'Start Assessment'}
-                          <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                          {locked ? <Lock className="h-5 w-5 text-muted-foreground" /> : assessment.emoji}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1 gap-2">
+                            <h3 className="font-semibold">{assessment.title}</h3>
+                            <CompletionBadge completed={assessment.completed} />
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">{assessment.description}</p>
+                          <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                            locked ? 'text-muted-foreground' : assessment.completed ? 'text-success' : 'text-primary'
+                          }`}>
+                            {locked ? 'Complete previous steps first' : assessment.completed ? 'View Results' : 'Start Assessment'}
+                            {!locked && <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Wrapper>
+                );
+              })}
             </div>
           </div>
 
