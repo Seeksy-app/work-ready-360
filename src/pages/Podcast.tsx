@@ -486,6 +486,8 @@ export default function Podcast() {
             occupationCode: selectedCareer.code,
             userId: user?.id,
             savePodcast: !!user,
+            hostVoiceId: selectedHostVoice,
+            guestVoiceId: selectedGuestVoice,
           }),
         }
       );

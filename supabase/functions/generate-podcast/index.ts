@@ -7,9 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Two distinct voices for the dialogue
-const HOST_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George - professional male host
-const GUEST_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah - engaging female co-host
+// Default voices (can be overridden by request)
+const DEFAULT_HOST_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George
+const DEFAULT_GUEST_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah
 
 interface ProfilePodcastRequest {
   type: 'profile';
