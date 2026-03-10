@@ -241,32 +241,30 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Career & Resume */}
+          {/* Profile & Resume */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Link to="/careers">
-              <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                hasExploredCareers ? 'border-success/30' : ''
-              }`} style={{ animationDelay: '0.2s' }}>
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    hasExploredCareers ? 'bg-success/10' : 'bg-muted'
-                  }`}>🔭</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <h3 className="font-semibold">Explore Careers</h3>
-                      <CompletionBadge completed={hasExploredCareers} label="Explored" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">Search O*NET careers and get personalized recommendations</p>
-                    <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                      hasExploredCareers ? 'text-success' : 'text-primary'
-                    }`}>
-                      {hasExploredCareers ? 'Continue Exploring' : 'Explore Now'}
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
+            <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
+              hasProfileComplete ? 'border-success/30' : ''
+            }`} style={{ animationDelay: '0.2s' }}>
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                  hasProfileComplete ? 'bg-success/10' : 'bg-muted'
+                }`}>👤</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold">Complete Profile</h3>
+                    <CompletionBadge completed={hasProfileComplete} />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <p className="text-sm text-muted-foreground mb-3">Add your zip code and notification preferences</p>
+                  <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                    hasProfileComplete ? 'text-success' : 'text-primary'
+                  }`}>
+                    {hasProfileComplete ? 'Profile Complete' : 'Complete Now'}
+                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Link to="/resume">
               <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
@@ -281,7 +279,7 @@ export default function Dashboard() {
                       <h3 className="font-semibold">Upload Resume</h3>
                       <CompletionBadge completed={hasResume} label="Uploaded" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for personalized insights</p>
+                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
                     <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
                       hasResume ? 'text-success' : 'text-primary'
                     }`}>
