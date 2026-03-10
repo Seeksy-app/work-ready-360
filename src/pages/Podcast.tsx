@@ -427,7 +427,7 @@ export default function Podcast() {
     }
   };
 
-  const handleGenerateCareer = async () => {
+  const doGenerateCareer = async () => {
     if (!selectedCareer) {
       toast.error('Please select a career first');
       return;
