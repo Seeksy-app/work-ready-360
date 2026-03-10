@@ -7,9 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Two distinct voices for the dialogue
-const HOST_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George - professional male host
-const GUEST_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah - engaging female co-host
+// Default voices (can be overridden by request)
+const DEFAULT_HOST_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George
+const DEFAULT_GUEST_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah
 
 interface ProfilePodcastRequest {
   type: 'profile';
@@ -455,8 +455,11 @@ serve(async (req) => {
       throw new Error('ELEVENLABS_API_KEY is not configured');
     }
 
-    const data: PodcastRequest = await req.json();
+    const data: PodcastRequest & { hostVoiceId?: string; guestVoiceId?: string } = await req.json();
     console.log("Generating podcast, type:", data.type || 'career');
+
+    const HOST_VOICE_ID = data.hostVoiceId || DEFAULT_HOST_VOICE_ID;
+    const GUEST_VOICE_ID = data.guestVoiceId || DEFAULT_GUEST_VOICE_ID;
 
     // Generate the script based on type
     let script: Array<{ speaker: 'host' | 'guest'; text: string }>;

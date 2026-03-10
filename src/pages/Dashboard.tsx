@@ -16,12 +16,19 @@ import {
   Sparkles,
   MessageSquare,
   PanelRightClose,
-  PanelRightOpen,
   Lock,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import logoColor from '@/assets/logo-color-full.png';
 import AgentChat from '@/components/AgentChat';
+
+function getFormattedDate() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 export default function Dashboard() {
   const { user, profile, loading, signOut, isAdmin } = useAuth();
@@ -34,10 +41,29 @@ export default function Dashboard() {
   const [hasResume, setHasResume] = useState(false);
   const [hasPodcasts, setHasPodcasts] = useState(false);
   const prevCompleted = useRef<Set<string>>(new Set());
+  const [weather, setWeather] = useState<string | null>(null);
 
   const fireConfetti = () => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#10b981', '#6366f1', '#ec4899'] });
   };
+
+  // Fetch weather based on zip code
+  useEffect(() => {
+    const fetchWeather = async () => {
+      const zip = (profile as any)?.zip_code;
+      if (!zip) return;
+      try {
+        const res = await fetch(`https://wttr.in/${zip}?format=%C+%t&m`);
+        if (res.ok) {
+          const text = await res.text();
+          setWeather(text.trim());
+        }
+      } catch {
+        // silently fail
+      }
+    };
+    fetchWeather();
+  }, [profile]);
 
   // Track newly completed steps and celebrate
   useEffect(() => {
@@ -95,27 +121,6 @@ export default function Dashboard() {
     );
   }
 
-  const assessments = [
-    {
-      id: 'interest',
-      title: 'Interest Profiler',
-      description: 'Discover careers that match your interests',
-      emoji: '🧭',
-      completed: hasInterestResults,
-      href: hasInterestResults ? '/assessment/interest/results' : '/assessment/interest',
-    },
-    {
-      id: 'work-importance',
-      title: 'Work Importance',
-      description: 'Identify what matters most in your career',
-      emoji: '⚖️',
-      completed: hasWorkImportanceResults,
-      href: hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance',
-    },
-  ];
-
-  const assessmentProgress = ((hasInterestResults ? 1 : 0) + (hasWorkImportanceResults ? 1 : 0)) / 2 * 100;
-
   const steps = [
     { id: 1, title: 'Complete Profile', completed: hasProfileComplete },
     { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
@@ -124,13 +129,43 @@ export default function Dashboard() {
     { id: 5, title: 'Create Career Podcast', completed: hasPodcasts },
   ];
 
-  // Determine the index of the first incomplete step
-  const currentStepIndex = steps.findIndex(s => !s.completed);
-  // Helper: is a step unlocked (completed or is the current one)?
-  const isStepUnlocked = (index: number) => steps[index].completed || index === currentStepIndex;
+  // Sequential completion: a step is "done" only if ALL prior steps are also done
+  const isSequentiallyCompleted = (index: number): boolean => {
+    for (let i = 0; i <= index; i++) {
+      if (!steps[i].completed) return false;
+    }
+    return true;
+  };
 
-  const completedSteps = steps.filter(s => s.completed).length;
+  // The current step is the first one that isn't sequentially completed
+  const currentStepIndex = steps.findIndex((_, i) => !isSequentiallyCompleted(i));
+  const isStepUnlocked = (index: number) => isSequentiallyCompleted(index) || index === currentStepIndex;
+
+  const completedSteps = steps.filter((_, i) => isSequentiallyCompleted(i)).length;
   const progress = (completedSteps / steps.length) * 100;
+
+  const assessments = [
+    {
+      id: 'interest',
+      title: 'Interest Profiler',
+      description: 'Discover careers that match your interests',
+      emoji: '🧭',
+      completed: isSequentiallyCompleted(1),
+      href: hasInterestResults ? '/assessment/interest/results' : '/assessment/interest',
+      stepIndex: 1,
+    },
+    {
+      id: 'work-importance',
+      title: 'Work Importance',
+      description: 'Identify what matters most in your career',
+      emoji: '⚖️',
+      completed: isSequentiallyCompleted(2),
+      href: hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance',
+      stepIndex: 2,
+    },
+  ];
+
+  const assessmentProgress = ((isSequentiallyCompleted(1) ? 1 : 0) + (isSequentiallyCompleted(2) ? 1 : 0)) / 2 * 100;
 
   const CompletionBadge = ({ completed, label }: { completed: boolean; label?: string }) => {
     if (!completed) return null;
@@ -187,11 +222,11 @@ export default function Dashboard() {
         <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
           {/* Welcome */}
           <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-3xl font-bold mb-1">
               Welcome{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''} 👋
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Let's create your personalized career podcast
+            <p className="text-muted-foreground text-sm">
+              {getFormattedDate()}{weather ? ` · ${weather}` : ''}
             </p>
           </div>
 
@@ -214,19 +249,20 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-wrap gap-4">
                 {steps.map((step, index) => {
+                  const seqCompleted = isSequentiallyCompleted(index);
                   const isCurrent = index === currentStepIndex;
                   return (
                     <div
                       key={step.id}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        step.completed
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                        seqCompleted
                           ? 'bg-success/15 text-success'
                           : isCurrent
-                            ? 'bg-primary/30 text-primary ring-2 ring-primary animate-pulse'
-                            : 'bg-muted/60 text-muted-foreground/50'
+                            ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            : 'bg-muted text-muted-foreground'
                       }`}
                     >
-                      {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                      {seqCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                       <span>{step.title}</span>
                     </div>
                   );
@@ -235,7 +271,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Assessments */}
+          {/* Resources */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Resources</h2>
@@ -246,9 +282,7 @@ export default function Dashboard() {
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {assessments.map((assessment, index) => {
-                // Interest = step index 1, Work Importance = step index 2
-                const stepIndex = index === 0 ? 1 : 2;
-                const locked = !isStepUnlocked(stepIndex);
+                const locked = !isStepUnlocked(assessment.stepIndex);
                 const Wrapper = locked ? 'div' : Link;
                 const wrapperProps = locked ? {} : { to: assessment.href };
                 return (
@@ -295,13 +329,13 @@ export default function Dashboard() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Complete Profile</h3>
-                    <CompletionBadge completed={hasProfileComplete} />
+                    <CompletionBadge completed={isSequentiallyCompleted(0)} />
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">Add your zip code and notification preferences</p>
                   <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                    hasProfileComplete ? 'text-success' : 'text-primary'
+                    isSequentiallyCompleted(0) ? 'text-success' : 'text-primary'
                   }`}>
-                    {hasProfileComplete ? 'Profile Complete' : 'Complete Now'}
+                    {isSequentiallyCompleted(0) ? 'Profile Complete' : 'Complete Now'}
                     <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -317,7 +351,7 @@ export default function Dashboard() {
                 <ResumeWrapper {...(resumeProps as any)}>
                   <Card className={`h-full transition-all duration-300 animate-slide-up ${
                     resumeLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
-                  } ${hasResume ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
+                  } ${isSequentiallyCompleted(3) ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
                     <CardContent className="p-6 flex items-start gap-4">
                       <div className="w-12 h-12 flex items-center justify-center text-2xl">
                         {resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}
@@ -325,13 +359,13 @@ export default function Dashboard() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1 gap-2">
                           <h3 className="font-semibold">Upload Resume</h3>
-                          <CompletionBadge completed={hasResume} label="Uploaded" />
+                          <CompletionBadge completed={isSequentiallyCompleted(3)} label="Uploaded" />
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
                         <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                          resumeLocked ? 'text-muted-foreground' : hasResume ? 'text-success' : 'text-primary'
+                          resumeLocked ? 'text-muted-foreground' : isSequentiallyCompleted(3) ? 'text-success' : 'text-primary'
                         }`}>
-                          {resumeLocked ? 'Complete previous steps first' : hasResume ? 'View Resume' : 'Upload Now'}
+                          {resumeLocked ? 'Complete previous steps first' : isSequentiallyCompleted(3) ? 'View Resume' : 'Upload Now'}
                           {!resumeLocked && <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />}
                         </div>
                       </div>
@@ -351,7 +385,7 @@ export default function Dashboard() {
               <PodWrapper {...(podProps as any)}>
                 <Card className={`border-2 animate-slide-up ${
                   podcastLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-accent/30 cursor-pointer group'
-                } ${hasPodcasts ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
+                } ${isSequentiallyCompleted(4) ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
                   <CardContent className="p-6 flex items-start gap-4">
                     <div className="w-12 h-12 flex items-center justify-center text-2xl">
                       {podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}
@@ -359,18 +393,18 @@ export default function Dashboard() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1 gap-2">
                         <h3 className="font-semibold">Create Your Career Podcast</h3>
-                        <CompletionBadge completed={hasPodcasts} label="Generated" />
+                        <CompletionBadge completed={isSequentiallyCompleted(4)} label="Generated" />
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
                         Generate a personalized two-person career podcast using your assessment scores and resume — choose short (2-3 min) or long (5-8 min)
                       </p>
                       <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                        podcastLocked ? 'text-muted-foreground' : hasPodcasts ? 'text-success' : 'text-accent'
+                        podcastLocked ? 'text-muted-foreground' : isSequentiallyCompleted(4) ? 'text-success' : 'text-accent'
                       }`}>
                         {podcastLocked ? 'Complete previous steps first' : (
                           <>
                             <span className="mr-1">▶</span>
-                            {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
+                            {isSequentiallyCompleted(4) ? 'Listen to Podcasts' : 'Generate Now'}
                             <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                           </>
                         )}
@@ -382,25 +416,27 @@ export default function Dashboard() {
             );
           })()}
 
-          {/* Curated Podcasts — under Resources, not a step */}
-          <Card className="animate-slide-up hover:shadow-lg hover:border-primary/30 cursor-pointer group transition-all duration-300" style={{ animationDelay: '0.35s' }}>
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-12 h-12 flex items-center justify-center text-2xl">🎧</div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1 gap-2">
-                  <h3 className="font-semibold">Curated Podcast Library</h3>
-                  <Badge variant="secondary" className="text-xs">Resource</Badge>
+          {/* Curated Podcasts — Resource, not a step */}
+          <Link to="/podcast?tab=curated">
+            <Card className="animate-slide-up hover:shadow-lg hover:border-primary/30 cursor-pointer group transition-all duration-300" style={{ animationDelay: '0.35s' }}>
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className="w-12 h-12 flex items-center justify-center text-2xl">🎧</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold">Curated Podcast Library</h3>
+                    <Badge variant="secondary" className="text-xs">Resource</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Curate a podcast list with topics related to your journey
+                  </p>
+                  <div className="flex items-center text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                    Browse Podcasts
+                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Browse a curated list of career-focused podcasts to listen to
-                </p>
-                <div className="flex items-center text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                  Browse Podcasts
-                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </main>
       </div>
 

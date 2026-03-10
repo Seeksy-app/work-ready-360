@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavedPodcasts from '@/components/SavedPodcasts';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Loader2, 
   ArrowLeft, 
@@ -31,6 +32,21 @@ import {
   Library,
   Save
 } from 'lucide-react';
+
+const ELEVENLABS_VOICES = [
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', desc: 'Professional male' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', desc: 'Engaging female' },
+  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', desc: 'Warm male' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', desc: 'Friendly female' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', desc: 'Casual male' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', desc: 'British male' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', desc: 'Young male' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', desc: 'Soft female' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', desc: 'Warm female' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', desc: 'Authoritative male' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', desc: 'Gentle female' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', desc: 'Narrator male' },
+];
 
 type PodcastType = 'profile' | 'career';
 
@@ -83,6 +99,10 @@ export default function Podcast() {
   const [transcript, setTranscript] = useState<string>('');
   const [generatedType, setGeneratedType] = useState<PodcastType>('profile');
   const [currentPodcastTitle, setCurrentPodcastTitle] = useState<string>('');
+  
+  // Voice selection
+  const [selectedHostVoice, setSelectedHostVoice] = useState(ELEVENLABS_VOICES[0].id);
+  const [selectedGuestVoice, setSelectedGuestVoice] = useState(ELEVENLABS_VOICES[1].id);
   
   // Saved podcast playback state
   const [playingSavedPodcast, setPlayingSavedPodcast] = useState<SavedPodcast | null>(null);
@@ -306,6 +326,8 @@ export default function Podcast() {
         userName: profileResult.data?.full_name || 'our listener',
         userId: user.id,
         savePodcast: true,
+        hostVoiceId: selectedHostVoice,
+        guestVoiceId: selectedGuestVoice,
       };
       
       if (interestResult.data) {
@@ -464,6 +486,8 @@ export default function Podcast() {
             occupationCode: selectedCareer.code,
             userId: user?.id,
             savePodcast: !!user,
+            hostVoiceId: selectedHostVoice,
+            guestVoiceId: selectedGuestVoice,
           }),
         }
       );
@@ -717,6 +741,32 @@ export default function Podcast() {
                       </ul>
                     </div>
 
+                    {/* Voice Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Host Voice</Label>
+                        <Select value={selectedHostVoice} onValueChange={setSelectedHostVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Co-host Voice</Label>
+                        <Select value={selectedGuestVoice} onValueChange={setSelectedGuestVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <Button
                       variant="accent"
                       size="lg"
@@ -852,6 +902,32 @@ export default function Podcast() {
                         )}
                       </div>
                     )}
+
+                    {/* Voice Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Host Voice</Label>
+                        <Select value={selectedHostVoice} onValueChange={setSelectedHostVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Co-host Voice</Label>
+                        <Select value={selectedGuestVoice} onValueChange={setSelectedGuestVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.name} — {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
                     <Button
                       variant="accent"
