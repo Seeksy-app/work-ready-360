@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavedPodcasts from '@/components/SavedPodcasts';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Loader2, 
   ArrowLeft, 
@@ -31,6 +32,21 @@ import {
   Library,
   Save
 } from 'lucide-react';
+
+const ELEVENLABS_VOICES = [
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', desc: 'Professional male' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', desc: 'Engaging female' },
+  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', desc: 'Warm male' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', desc: 'Friendly female' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', desc: 'Casual male' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', desc: 'British male' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', desc: 'Young male' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', desc: 'Soft female' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', desc: 'Warm female' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', desc: 'Authoritative male' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', desc: 'Gentle female' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', desc: 'Narrator male' },
+];
 
 type PodcastType = 'profile' | 'career';
 
