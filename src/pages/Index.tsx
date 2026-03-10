@@ -94,21 +94,39 @@ export default function Index() {
             </div>
             {/* White floating card */}
             <div className="bg-card p-8 md:p-12 md:-ml-12 my-8 md:my-16 relative z-10 shadow-xl">
-              <p className="uppercase tracking-[0.2em] text-xs font-bold text-primary mb-4">Career Discovery</p>
+              <p className="uppercase tracking-[0.2em] text-xs font-bold text-primary mb-4">What You Get — Free</p>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight font-display">
-                Where Your<br />
-                Career Story<br />
-                <span className="italic text-primary">Begins</span>
+                Everything to<br />
+                Find Work You<br />
+                <span className="italic text-primary">Actually Love</span>
               </h2>
-              <p className="mt-6 text-muted-foreground leading-relaxed">
-                WorkReady360 uses research-backed O*NET assessments and AI to match
-                you with careers that align with your interests, values, and strengths.
-              </p>
-              <Link to="/auth" className="mt-8 inline-block">
-                <Button variant="hero" className="uppercase tracking-wider text-sm font-bold">
-                  Discover Your Path
-                </Button>
-              </Link>
+
+              <ul className="mt-6 space-y-4">
+                {[
+                  { icon: ClipboardCheck, label: 'Free Career Exploration Assessments', desc: 'Research-backed O*NET profilers for interests & work values' },
+                  { icon: Brain, label: 'AI Insights & Resume Re-Write Tips', desc: 'Personalized recommendations powered by your unique profile' },
+                  { icon: Headphones, label: 'A Curated List of Career Podcasts', desc: 'Custom 3–5 min audio episodes about your ideal career path' },
+                  { icon: Briefcase, label: 'Recommended Occupations', desc: 'Matched careers that align with your strengths and values' },
+                ].map((item, i) => (
+                  <li key={i} className="flex gap-3 items-start">
+                    <div className="w-9 h-9 rounded-sm bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <item.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm">{item.label}</p>
+                      <p className="text-muted-foreground text-xs leading-relaxed">{item.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                variant="hero"
+                className="mt-8 uppercase tracking-wider text-sm font-bold"
+                onClick={() => setOnboardingOpen(true)}
+              >
+                Discover Your Path
+              </Button>
             </div>
           </div>
         </div>
