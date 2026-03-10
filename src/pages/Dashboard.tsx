@@ -239,7 +239,7 @@ export default function Dashboard() {
           {/* Assessments */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Career Assessments</h2>
+              <h2 className="text-xl font-semibold">Resources</h2>
               {assessmentProgress > 0 && assessmentProgress < 100 && (
                 <Badge variant="secondary" className="gap-1">{Math.round(assessmentProgress)}% Complete</Badge>
               )}
