@@ -414,6 +414,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <img src={mascot} alt="Agent360" className="h-7 w-7 rounded-full object-cover" />
             <span className="font-semibold text-sm">Agent360</span>
+            <span className="text-xs font-bold text-primary">360</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="h-7 w-7">
             <PanelRightClose className="h-4 w-4" />
