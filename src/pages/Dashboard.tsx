@@ -18,9 +18,9 @@ import {
   LogOut,
   PanelRightClose,
   Lock,
+  SkipForward,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import logoColor from '@/assets/logo-color-full.png';
 import AgentChat from '@/components/AgentChat';
 import ProfileSheet from '@/components/ProfileSheet';
 
@@ -57,6 +57,8 @@ export default function Dashboard() {
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [hasPodcasts, setHasPodcasts] = useState(false);
+  const [resumeSkipped, setResumeSkipped] = useState(() => localStorage.getItem('wr360_resume_skipped') === 'true');
+  const [podcastSkipped, setPodcastSkipped] = useState(() => localStorage.getItem('wr360_podcast_skipped') === 'true');
   const prevCompleted = useRef<Set<string>>(new Set());
   const [weather, setWeather] = useState<string | null>(null);
 
@@ -85,8 +87,8 @@ export default function Dashboard() {
     if (hasProfileComplete) currentCompleted.add('profile');
     if (hasInterestResults) currentCompleted.add('interest');
     if (hasWorkImportanceResults) currentCompleted.add('wip');
-    if (hasResume) currentCompleted.add('resume');
-    if (hasPodcasts) currentCompleted.add('podcast');
+    if (hasResume || resumeSkipped) currentCompleted.add('resume');
+    if (hasPodcasts || podcastSkipped) currentCompleted.add('podcast');
 
     if (prevCompleted.current.size > 0) {
       for (const key of currentCompleted) {
@@ -94,7 +96,7 @@ export default function Dashboard() {
       }
     }
     prevCompleted.current = currentCompleted;
-  }, [hasProfileComplete, hasInterestResults, hasWorkImportanceResults, hasResume, hasPodcasts]);
+  }, [hasProfileComplete, hasInterestResults, hasWorkImportanceResults, hasResume, hasPodcasts, resumeSkipped, podcastSkipped]);
 
   useEffect(() => {
     if (!loading && !user) navigate('/auth');
@@ -121,11 +123,20 @@ export default function Dashboard() {
   // Auto-open profile sheet for new users who haven't completed their profile
   useEffect(() => {
     if (!loading && user && !hasProfileComplete && !profileSheetOpen) {
-      // Small delay so the dashboard renders first
       const timer = setTimeout(() => setProfileSheetOpen(true), 800);
       return () => clearTimeout(timer);
     }
   }, [loading, user, hasProfileComplete]);
+
+  const handleSkipResume = () => {
+    setResumeSkipped(true);
+    localStorage.setItem('wr360_resume_skipped', 'true');
+  };
+
+  const handleSkipPodcast = () => {
+    setPodcastSkipped(true);
+    localStorage.setItem('wr360_podcast_skipped', 'true');
+  };
 
   if (loading) {
     return (
@@ -135,12 +146,16 @@ export default function Dashboard() {
     );
   }
 
+  // Steps — resume and podcast can be skipped
+  const resumeCompleted = hasResume || resumeSkipped;
+  const podcastCompleted = hasPodcasts || podcastSkipped;
+
   const steps = [
-    { id: 1, title: 'Complete Profile', completed: hasProfileComplete },
-    { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
-    { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults },
-    { id: 4, title: 'Upload Resume', completed: hasResume },
-    { id: 5, title: 'Create Career Podcast', completed: hasPodcasts },
+    { id: 1, title: 'Complete Profile', completed: hasProfileComplete, skipped: false, canSkip: false },
+    { id: 2, title: 'Interest Profiler', completed: hasInterestResults, skipped: false, canSkip: false },
+    { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults, skipped: false, canSkip: false },
+    { id: 4, title: 'Upload Resume', completed: resumeCompleted, skipped: resumeSkipped && !hasResume, canSkip: true },
+    { id: 5, title: 'Career Podcast', completed: podcastCompleted, skipped: podcastSkipped && !hasPodcasts, canSkip: true },
   ];
 
   const isSequentiallyCompleted = (index: number): boolean => {
@@ -154,6 +169,9 @@ export default function Dashboard() {
   const isStepUnlocked = (index: number) => isSequentiallyCompleted(index) || index === currentStepIndex;
   const completedSteps = steps.filter((_, i) => isSequentiallyCompleted(i)).length;
   const progress = (completedSteps / steps.length) * 100;
+
+  // Podcast Library unlocks when podcast is generated OR both resume+podcast are skipped
+  const podcastLibraryUnlocked = hasPodcasts || (resumeSkipped && podcastSkipped);
 
   // Step navigation handlers
   const stepActions: Record<number, () => void> = {
@@ -173,14 +191,14 @@ export default function Dashboard() {
       ? (hasWorkImportanceResults ? 'View your work values' : 'Take the Work Importance assessment')
       : 'Complete the Interest Profiler to unlock this step',
     isStepUnlocked(3)
-      ? (hasResume ? 'View your resume' : 'Upload your resume')
+      ? (hasResume ? 'View your resume' : resumeSkipped ? 'Skipped — click to upload' : 'Upload your resume')
       : 'Complete Work Importance to unlock this step',
     isStepUnlocked(4)
-      ? (hasPodcasts ? 'Listen to your podcasts' : 'Generate your career podcast')
-      : 'Upload your resume to unlock this step',
+      ? (hasPodcasts ? 'Listen to your podcasts' : podcastSkipped ? 'Skipped — click to generate' : 'Generate your career podcast')
+      : 'Complete or skip Resume to unlock this step',
   ];
 
-  // 6-card grid: profile, interest, work importance, resume, career podcast, curated podcasts
+  // 6-card grid
   const cards = [
     {
       id: 'profile',
@@ -188,6 +206,7 @@ export default function Dashboard() {
       description: 'Add your zip code, LinkedIn, and preferences',
       emoji: '👤',
       completed: isSequentiallyCompleted(0),
+      skipped: false,
       stepIndex: 0,
       onClick: () => setProfileSheetOpen(true),
     },
@@ -197,6 +216,7 @@ export default function Dashboard() {
       description: 'Discover careers that match your interests',
       emoji: '🧭',
       completed: isSequentiallyCompleted(1),
+      skipped: false,
       stepIndex: 1,
       href: hasInterestResults ? '/assessment/interest/results' : '/assessment/interest',
     },
@@ -206,6 +226,7 @@ export default function Dashboard() {
       description: 'Identify what matters most in your career',
       emoji: '⚖️',
       completed: isSequentiallyCompleted(2),
+      skipped: false,
       stepIndex: 2,
       href: hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance',
     },
@@ -215,8 +236,10 @@ export default function Dashboard() {
       description: 'Upload your resume for AI-powered tips',
       emoji: '📄',
       completed: isSequentiallyCompleted(3),
+      skipped: steps[3].skipped,
       stepIndex: 3,
       href: '/resume',
+      canSkip: true,
     },
     {
       id: 'podcast',
@@ -224,8 +247,10 @@ export default function Dashboard() {
       description: 'Generate a personalized career podcast',
       emoji: '🎙️',
       completed: isSequentiallyCompleted(4),
+      skipped: steps[4].skipped,
       stepIndex: 4,
       href: '/podcast',
+      canSkip: true,
     },
     {
       id: 'curated',
@@ -233,13 +258,23 @@ export default function Dashboard() {
       description: 'Browse curated career podcasts',
       emoji: '🎧',
       completed: false,
-      stepIndex: -1, // always unlocked
+      skipped: false,
+      stepIndex: -1,
       href: '/podcast?tab=curated',
       isResource: true,
+      resourceLocked: !podcastLibraryUnlocked,
     },
   ];
 
-  const CompletionBadge = ({ completed, label }: { completed: boolean; label?: string }) => {
+  const CompletionBadge = ({ completed, skipped, label }: { completed: boolean; skipped?: boolean; label?: string }) => {
+    if (skipped) {
+      return (
+        <Badge variant="outline" className="bg-muted text-muted-foreground border-dashed gap-1 text-xs">
+          <SkipForward className="h-3 w-3" />
+          Skipped
+        </Badge>
+      );
+    }
     if (!completed) return null;
     return (
       <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-1 text-xs">
@@ -293,7 +328,7 @@ export default function Dashboard() {
         </header>
 
         <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
-          {/* Welcome — now with name, date, time, weather */}
+          {/* Welcome */}
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold mb-1">
               {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
@@ -326,27 +361,54 @@ export default function Dashboard() {
                   const unlocked = isStepUnlocked(index);
 
                   return (
-                    <Tooltip key={step.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => unlocked && stepActions[index]?.()}
-                          disabled={!unlocked}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                            seqCompleted
-                              ? 'bg-success/15 text-success cursor-pointer hover:bg-success/25'
-                              : isCurrent
-                                ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse cursor-pointer hover:bg-primary/40'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed'
-                          }`}
-                        >
-                          {seqCompleted ? <CheckCircle2 className="h-4 w-4" /> : unlocked ? <Circle className="h-4 w-4" /> : <Lock className="h-3.5 w-3.5" />}
-                          <span>{step.title}</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
-                        <p>{stepTooltips[index]}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <div key={step.id} className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => unlocked && stepActions[index]?.()}
+                            disabled={!unlocked}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                              step.skipped
+                                ? 'bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-muted/80'
+                                : seqCompleted
+                                  ? 'bg-success/15 text-success cursor-pointer hover:bg-success/25'
+                                  : isCurrent
+                                    ? 'bg-primary/30 text-primary-foreground ring-2 ring-primary animate-pulse cursor-pointer hover:bg-primary/40'
+                                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            }`}
+                          >
+                            {step.skipped
+                              ? <SkipForward className="h-4 w-4" />
+                              : seqCompleted
+                                ? <CheckCircle2 className="h-4 w-4" />
+                                : unlocked
+                                  ? <Circle className="h-4 w-4" />
+                                  : <Lock className="h-3.5 w-3.5" />}
+                            <span>{step.title}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                          <p>{stepTooltips[index]}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {/* Skip button for skippable steps that are current and not yet completed/skipped */}
+                      {step.canSkip && isCurrent && !seqCompleted && !step.skipped && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => index === 3 ? handleSkipResume() : handleSkipPodcast()}
+                              className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                              <SkipForward className="h-3 w-3" />
+                              Skip
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p>Skip this step for now</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -358,7 +420,9 @@ export default function Dashboard() {
             <h2 className="text-xl font-semibold">Resources</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {cards.map((card, index) => {
-                const locked = card.stepIndex >= 0 && !card.isResource && !isStepUnlocked(card.stepIndex);
+                const locked = card.isResource
+                  ? card.resourceLocked
+                  : card.stepIndex >= 0 && !isStepUnlocked(card.stepIndex);
                 const isClickable = !locked;
 
                 const cardContent = (
@@ -367,7 +431,7 @@ export default function Dashboard() {
                       locked
                         ? 'opacity-50 cursor-not-allowed'
                         : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
-                    } ${card.completed ? 'border-success/30' : ''}`}
+                    } ${card.completed && !card.skipped ? 'border-success/30' : ''} ${card.skipped ? 'border-dashed' : ''}`}
                     style={{ animationDelay: `${index * 0.08}s` }}
                     onClick={isClickable && card.onClick ? card.onClick : undefined}
                   >
@@ -379,23 +443,41 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between mb-1 gap-2">
                           <h3 className="font-semibold text-sm">{card.title}</h3>
                           {card.isResource ? (
-                            <Badge variant="secondary" className="text-xs">Resource</Badge>
+                            locked ? null : <Badge variant="secondary" className="text-xs">Resource</Badge>
                           ) : (
-                            <CompletionBadge completed={card.completed} />
+                            <CompletionBadge completed={card.completed} skipped={card.skipped} />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{card.description}</p>
-                        <div className={`flex items-center text-xs font-medium group-hover:gap-2 transition-all ${
-                          locked ? 'text-muted-foreground' : card.completed ? 'text-success' : 'text-primary'
-                        }`}>
-                          {locked
-                            ? 'Complete previous steps'
-                            : card.completed
-                              ? 'View Results'
-                              : card.isResource
-                                ? 'Browse'
-                                : 'Start'}
-                          {!locked && <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />}
+                        <div className="flex items-center justify-between">
+                          <div className={`flex items-center text-xs font-medium group-hover:gap-2 transition-all ${
+                            locked ? 'text-muted-foreground' : card.skipped ? 'text-muted-foreground' : card.completed ? 'text-success' : 'text-primary'
+                          }`}>
+                            {locked
+                              ? 'Complete previous steps'
+                              : card.skipped
+                                ? 'Skipped — click to complete'
+                                : card.completed
+                                  ? 'View Results'
+                                  : card.isResource
+                                    ? 'Browse'
+                                    : 'Start'}
+                            {!locked && <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />}
+                          </div>
+                          {/* Skip button on card for skippable, unlocked, not-yet-completed cards */}
+                          {card.canSkip && !locked && !card.completed && !card.skipped && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                card.id === 'resume' ? handleSkipResume() : handleSkipPodcast();
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                              <SkipForward className="h-3 w-3" />
+                              Skip
+                            </button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
