@@ -17,6 +17,7 @@ import {
   MessageSquare,
   PanelRightClose,
   PanelRightOpen,
+  Lock,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import logoColor from '@/assets/logo-color.png';
@@ -123,6 +124,11 @@ export default function Dashboard() {
     { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
   ];
 
+  // Determine the index of the first incomplete step
+  const currentStepIndex = steps.findIndex(s => !s.completed);
+  // Helper: is a step unlocked (completed or is the current one)?
+  const isStepUnlocked = (index: number) => steps[index].completed || index === currentStepIndex;
+
   const completedSteps = steps.filter(s => s.completed).length;
   const progress = (completedSteps / steps.length) * 100;
 
@@ -141,38 +147,38 @@ export default function Dashboard() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <header className="border-b bg-accent backdrop-blur-sm sticky top-0 z-50">
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={logoColor} alt="WorkReady360" className="h-9 w-auto" />
-              <span className="font-semibold text-lg hidden sm:inline">WorkReady360</span>
+              <span className="font-semibold text-lg hidden sm:inline text-accent-foreground">WorkReady360</span>
             </div>
             
             <div className="flex items-center gap-3">
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="sm">Admin</Button>
+                  <Button variant="ghost" size="sm" className="text-accent-foreground hover:bg-accent-foreground/10">Admin</Button>
                 </Link>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setChatOpen(!chatOpen)}
-                className="md:hidden"
+                className="md:hidden text-accent-foreground hover:bg-accent-foreground/10"
               >
                 {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-accent text-accent-foreground text-sm">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium hidden sm:inline">
+                <span className="text-sm font-medium hidden sm:inline text-accent-foreground">
                   {profile?.full_name || user?.email}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut}>
+              <Button variant="ghost" size="icon" onClick={signOut} className="text-accent-foreground hover:bg-accent-foreground/10">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -208,17 +214,27 @@ export default function Dashboard() {
                 <Progress value={progress} className="h-2" />
               </div>
               <div className="flex flex-wrap gap-4">
-                {steps.map((step) => (
-                  <div
-                    key={step.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm ${
-                      step.completed ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                    <span>{step.title}</span>
-                  </div>
-                ))}
+                {steps.map((step, index) => {
+                  const isCurrent = index === currentStepIndex;
+                  const isNext = index === currentStepIndex + 1 && currentStepIndex >= 0 && !step.completed;
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        step.completed
+                          ? 'bg-success/15 text-success'
+                          : isCurrent
+                            ? 'bg-primary/20 text-primary-foreground ring-2 ring-primary animate-pulse'
+                            : isNext
+                              ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                              : 'bg-muted/60 text-muted-foreground/50'
+                      }`}
+                    >
+                      {step.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                      <span>{step.title}</span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -233,44 +249,52 @@ export default function Dashboard() {
               {assessmentProgress === 100 && <CompletionBadge completed={true} label="All Complete" />}
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              {assessments.map((assessment, index) => (
-                <Link key={assessment.id} to={assessment.href}>
-                  <Card 
-                    className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                      assessment.completed ? 'border-success/30' : ''
-                    }`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <CardContent className="p-6 flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                        assessment.completed ? 'bg-success/10' : 'bg-muted'
-                      }`}>
-                        {assessment.emoji}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1 gap-2">
-                          <h3 className="font-semibold">{assessment.title}</h3>
-                          <CompletionBadge completed={assessment.completed} />
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{assessment.description}</p>
-                        <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                          assessment.completed ? 'text-success' : 'text-primary'
+              {assessments.map((assessment, index) => {
+                // Interest = step index 1, Work Importance = step index 2
+                const stepIndex = index === 0 ? 1 : 2;
+                const locked = !isStepUnlocked(stepIndex);
+                const Wrapper = locked ? 'div' : Link;
+                const wrapperProps = locked ? {} : { to: assessment.href };
+                return (
+                  <Wrapper key={assessment.id} {...(wrapperProps as any)}>
+                    <Card 
+                      className={`h-full transition-all duration-300 animate-slide-up ${
+                        locked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
+                      } ${assessment.completed ? 'border-success/30' : ''}`}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <CardContent className="p-6 flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                          assessment.completed ? 'bg-success/10' : 'bg-muted'
                         }`}>
-                          {assessment.completed ? 'View Results' : 'Start Assessment'}
-                          <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                          {locked ? <Lock className="h-5 w-5 text-muted-foreground" /> : assessment.emoji}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1 gap-2">
+                            <h3 className="font-semibold">{assessment.title}</h3>
+                            <CompletionBadge completed={assessment.completed} />
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">{assessment.description}</p>
+                          <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                            locked ? 'text-muted-foreground' : assessment.completed ? 'text-success' : 'text-primary'
+                          }`}>
+                            {locked ? 'Complete previous steps first' : assessment.completed ? 'View Results' : 'Start Assessment'}
+                            {!locked && <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Wrapper>
+                );
+              })}
             </div>
           </div>
 
           {/* Profile & Resume */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-              hasProfileComplete ? 'border-success/30' : ''
+            {/* Profile card — step index 0 */}
+            <Card className={`h-full transition-all duration-300 animate-slide-up ${
+              hasProfileComplete ? 'border-success/30' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
             }`} style={{ animationDelay: '0.2s' }}>
               <CardContent className="p-6 flex items-start gap-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
@@ -292,41 +316,54 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Link to="/resume">
-              <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                hasResume ? 'border-success/30' : ''
-              }`} style={{ animationDelay: '0.25s' }}>
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    hasResume ? 'bg-success/10' : 'bg-muted'
-                  }`}>📄</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <h3 className="font-semibold">Upload Resume</h3>
-                      <CompletionBadge completed={hasResume} label="Uploaded" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
-                    <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                      hasResume ? 'text-success' : 'text-primary'
-                    }`}>
-                      {hasResume ? 'View Resume' : 'Upload Now'}
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            {/* Resume card — step index 3 */}
+            {(() => {
+              const resumeLocked = !isStepUnlocked(3);
+              const ResumeWrapper = resumeLocked ? 'div' : Link;
+              const resumeProps = resumeLocked ? {} : { to: '/resume' };
+              return (
+                <ResumeWrapper {...(resumeProps as any)}>
+                  <Card className={`h-full transition-all duration-300 animate-slide-up ${
+                    resumeLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
+                  } ${hasResume ? 'border-success/30' : ''}`} style={{ animationDelay: '0.25s' }}>
+                    <CardContent className="p-6 flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        hasResume ? 'bg-success/10' : 'bg-muted'
+                      }`}>{resumeLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '📄'}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <h3 className="font-semibold">Upload Resume</h3>
+                          <CompletionBadge completed={hasResume} label="Uploaded" />
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
+                        <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                          resumeLocked ? 'text-muted-foreground' : hasResume ? 'text-success' : 'text-primary'
+                        }`}>
+                          {resumeLocked ? 'Complete previous steps first' : hasResume ? 'View Resume' : 'Upload Now'}
+                          {!resumeLocked && <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </ResumeWrapper>
+              );
+            })()}
           </div>
 
-          {/* Podcast */}
-          <Link to="/podcast">
-            <Card className={`hover:shadow-lg transition-all duration-300 hover:border-accent/30 cursor-pointer group border-2 ${
-              hasPodcasts ? 'border-success/30' : 'border-dashed'
-            } animate-slide-up`} style={{ animationDelay: '0.3s' }}>
-              <CardContent className="p-6 flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                  hasPodcasts ? 'bg-success/10' : 'bg-muted'
-                }`}>🎙️</div>
+          {/* Podcast — step index 4 */}
+          {(() => {
+            const podcastLocked = !isStepUnlocked(4);
+            const PodWrapper = podcastLocked ? 'div' : Link;
+            const podProps = podcastLocked ? {} : { to: '/podcast' };
+            return (
+              <PodWrapper {...(podProps as any)}>
+                <Card className={`border-2 animate-slide-up ${
+                  podcastLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-accent/30 cursor-pointer group'
+                } ${hasPodcasts ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
+                  <CardContent className="p-6 flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                      hasPodcasts ? 'bg-success/10' : 'bg-muted'
+                    }`}>{podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Generate Podcast</h3>
@@ -334,16 +371,22 @@ export default function Dashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">Create your personalized 3-5 minute career podcast with AI</p>
                   <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                    hasPodcasts ? 'text-success' : 'text-accent'
+                    podcastLocked ? 'text-muted-foreground' : hasPodcasts ? 'text-success' : 'text-accent'
                   }`}>
-                    <span className="mr-1">▶</span>
-                    {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
-                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    {podcastLocked ? 'Complete previous steps first' : (
+                      <>
+                        <span className="mr-1">▶</span>
+                        {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
+                        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </PodWrapper>
+            );
+          })()}
         </main>
       </div>
 
