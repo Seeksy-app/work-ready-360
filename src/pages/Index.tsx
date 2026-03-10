@@ -21,12 +21,12 @@ export default function Index() {
         <div className="absolute inset-0 bg-gradient-to-r from-accent/80 via-accent/50 to-transparent" />
 
         {/* Floating white card — editorial style */}
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-xl bg-card/95 backdrop-blur-sm p-8 md:p-12 rounded-sm shadow-xl animate-slide-up">
+        <div className="container mx-auto px-4 relative z-10 flex justify-center">
+          <div className="max-w-xl bg-card/80 backdrop-blur-md p-8 md:p-12 rounded-sm shadow-xl animate-slide-up text-center">
             <img
               src={logoColor}
               alt="WorkReady360 Leadership Project"
-              className="h-24 md:h-32 mb-6 object-contain"
+              className="h-24 md:h-32 mb-6 object-contain mx-auto"
             />
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-foreground font-display">
               Unlock Your{' '}
@@ -36,7 +36,7 @@ export default function Index() {
               Building Work Readiness with Happiness, Engagement&nbsp;&amp;&nbsp;Productivity.
               Discover your ideal career path through personalized assessments and AI&#8209;powered insights.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/auth">
                 <Button variant="hero" size="xl" className="w-full sm:w-auto uppercase tracking-wider text-sm font-bold">
                   Get Started
