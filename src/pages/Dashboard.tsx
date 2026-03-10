@@ -123,6 +123,11 @@ export default function Dashboard() {
     { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
   ];
 
+  // Determine the index of the first incomplete step
+  const currentStepIndex = steps.findIndex(s => !s.completed);
+  // Helper: is a step unlocked (completed or is the current one)?
+  const isStepUnlocked = (index: number) => steps[index].completed || index === currentStepIndex;
+
   const completedSteps = steps.filter(s => s.completed).length;
   const progress = (completedSteps / steps.length) * 100;
 
