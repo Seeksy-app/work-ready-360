@@ -289,7 +289,26 @@ export default function Podcast() {
     }
   };
 
-  const handleGenerateProfile = async () => {
+  // Wrapper that checks for resume/LinkedIn before generating
+  const tryGenerate = (type: 'profile' | 'career') => {
+    const missingResume = !profileSummary?.hasResume;
+    const missingLinkedIn = !hasLinkedIn;
+    if (missingResume || missingLinkedIn) {
+      setPendingGenerateType(type);
+      setShowPrePrompt(true);
+      return;
+    }
+    if (type === 'profile') doGenerateProfile();
+    else doGenerateCareer();
+  };
+
+  const handlePrePromptContinue = () => {
+    if (pendingGenerateType === 'profile') doGenerateProfile();
+    else if (pendingGenerateType === 'career') doGenerateCareer();
+    setPendingGenerateType(null);
+  };
+
+  const doGenerateProfile = async () => {
     if (!user) {
       toast.error('Please sign in to generate your podcast');
       return;
