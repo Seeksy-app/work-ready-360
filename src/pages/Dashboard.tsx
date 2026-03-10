@@ -118,6 +118,15 @@ export default function Dashboard() {
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
 
+  // Auto-open profile sheet for new users who haven't completed their profile
+  useEffect(() => {
+    if (!loading && user && !hasProfileComplete && !profileSheetOpen) {
+      // Small delay so the dashboard renders first
+      const timer = setTimeout(() => setProfileSheetOpen(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, hasProfileComplete]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
