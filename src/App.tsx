@@ -14,6 +14,7 @@ import WorkImportanceResults from "./pages/WorkImportanceResults";
 import Resume from "./pages/Resume";
 import Podcast from "./pages/Podcast";
 import CareerExplorer from "./pages/CareerExplorer";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import Admin from "./pages/Admin";
 import AdminWip from "./pages/AdminWip";
 import AdminWipSession from "./pages/AdminWipSession";
