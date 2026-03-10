@@ -354,9 +354,9 @@ export default function Dashboard() {
                   podcastLocked ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-accent/30 cursor-pointer group'
                 } ${hasPodcasts ? 'border-success/30' : 'border-dashed'}`} style={{ animationDelay: '0.3s' }}>
                   <CardContent className="p-6 flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                      hasPodcasts ? 'bg-success/10' : 'bg-muted'
-                    }`}>{podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}</div>
+                    <div className="w-12 h-12 flex items-center justify-center text-2xl">
+                      {podcastLocked ? <Lock className="h-5 w-5 text-muted-foreground" /> : '🎙️'}
+                    </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Generate Podcast</h3>
