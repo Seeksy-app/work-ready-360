@@ -26,11 +26,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(true);
 
+  const [hasProfileComplete, setHasProfileComplete] = useState(false);
   const [hasInterestResults, setHasInterestResults] = useState(false);
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
   const [hasPodcasts, setHasPodcasts] = useState(false);
-  const [hasExploredCareers, setHasExploredCareers] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -42,18 +42,19 @@ export default function Dashboard() {
     const checkCompletionStatus = async () => {
       if (!user) return;
 
-      const [interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
+      const [profileRes, interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
+        supabase.from('profiles').select('zip_code').eq('user_id', user.id).single(),
         supabase.from('interest_profiler_results').select('id').eq('user_id', user.id).limit(1),
         supabase.from('work_importance_results').select('id').eq('user_id', user.id).limit(1),
         supabase.from('resumes').select('id').eq('user_id', user.id).limit(1),
         supabase.from('podcasts').select('id').eq('user_id', user.id).eq('status', 'completed').limit(1),
       ]);
 
+      setHasProfileComplete(!!(profileRes.data as any)?.zip_code);
       setHasInterestResults((interestRes.data?.length || 0) > 0);
       setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
       setHasResume((resumeRes.data?.length || 0) > 0);
       setHasPodcasts((podcastRes.data?.length || 0) > 0);
-      setHasExploredCareers((interestRes.data?.length || 0) > 0 || (workRes.data?.length || 0) > 0);
     };
 
     checkCompletionStatus();
@@ -86,13 +87,14 @@ export default function Dashboard() {
     },
   ];
 
-  const assessmentsComplete = hasInterestResults && hasWorkImportanceResults;
   const assessmentProgress = ((hasInterestResults ? 1 : 0) + (hasWorkImportanceResults ? 1 : 0)) / 2 * 100;
 
   const steps = [
-    { id: 1, title: 'Complete Assessments', completed: assessmentsComplete },
-    { id: 2, title: 'Explore Careers', completed: hasExploredCareers },
-    { id: 3, title: 'Generate Podcast', completed: hasPodcasts },
+    { id: 1, title: 'Complete Profile', completed: hasProfileComplete },
+    { id: 2, title: 'Interest Profiler', completed: hasInterestResults },
+    { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults },
+    { id: 4, title: 'Upload Resume', completed: hasResume },
+    { id: 5, title: 'Generate Podcast', completed: hasPodcasts },
   ];
 
   const completedSteps = steps.filter(s => s.completed).length;
@@ -239,32 +241,30 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Career & Resume */}
+          {/* Profile & Resume */}
           <div className="grid md:grid-cols-2 gap-4">
-            <Link to="/careers">
-              <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
-                hasExploredCareers ? 'border-success/30' : ''
-              }`} style={{ animationDelay: '0.2s' }}>
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    hasExploredCareers ? 'bg-success/10' : 'bg-muted'
-                  }`}>🔭</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <h3 className="font-semibold">Explore Careers</h3>
-                      <CompletionBadge completed={hasExploredCareers} label="Explored" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">Search O*NET careers and get personalized recommendations</p>
-                    <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                      hasExploredCareers ? 'text-success' : 'text-primary'
-                    }`}>
-                      {hasExploredCareers ? 'Continue Exploring' : 'Explore Now'}
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
+            <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
+              hasProfileComplete ? 'border-success/30' : ''
+            }`} style={{ animationDelay: '0.2s' }}>
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                  hasProfileComplete ? 'bg-success/10' : 'bg-muted'
+                }`}>👤</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold">Complete Profile</h3>
+                    <CompletionBadge completed={hasProfileComplete} />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <p className="text-sm text-muted-foreground mb-3">Add your zip code and notification preferences</p>
+                  <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
+                    hasProfileComplete ? 'text-success' : 'text-primary'
+                  }`}>
+                    {hasProfileComplete ? 'Profile Complete' : 'Complete Now'}
+                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Link to="/resume">
               <Card className={`h-full hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer group animate-slide-up ${
@@ -279,7 +279,7 @@ export default function Dashboard() {
                       <h3 className="font-semibold">Upload Resume</h3>
                       <CompletionBadge completed={hasResume} label="Uploaded" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for personalized insights</p>
+                    <p className="text-sm text-muted-foreground mb-3">Upload your resume for AI-powered re-write tips</p>
                     <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
                       hasResume ? 'text-success' : 'text-primary'
                     }`}>
