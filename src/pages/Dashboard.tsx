@@ -156,28 +156,28 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="sm">Admin</Button>
+                  <Button variant="ghost" size="sm" className="text-accent-foreground hover:bg-accent-foreground/10">Admin</Button>
                 </Link>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setChatOpen(!chatOpen)}
-                className="md:hidden"
+                className="md:hidden text-accent-foreground hover:bg-accent-foreground/10"
               >
                 {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-accent text-accent-foreground text-sm">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium hidden sm:inline">
+                <span className="text-sm font-medium hidden sm:inline text-accent-foreground">
                   {profile?.full_name || user?.email}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut}>
+              <Button variant="ghost" size="icon" onClick={signOut} className="text-accent-foreground hover:bg-accent-foreground/10">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
