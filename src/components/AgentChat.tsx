@@ -1,28 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Sparkles, Send, Bot } from 'lucide-react';
+import { Send, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
+import mascot from '@/assets/agent360-mascot.png';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`;
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
-
-function getFormattedDate() {
-  const now = new Date();
-  return now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) +
-    ' • ' +
-    now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
 
 export default function AgentChat() {
   const { profile, user } = useAuth();
@@ -127,17 +114,15 @@ export default function AgentChat() {
         <div className="space-y-4 py-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground text-sm py-8">
-              <Bot className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
-              <p>Ask me anything about your career journey.</p>
-              <p className="mt-1 text-xs">I can help with assessments, resumes, career paths & more.</p>
+              <img src={mascot} alt="Agent360" className="h-20 w-20 mx-auto mb-4 drop-shadow-md" />
+              <p className="font-medium text-foreground">Hi {firstName}! I'm Agent360 🤖</p>
+              <p className="mt-1 text-xs">Ask me about assessments, resumes, career paths & more.</p>
             </div>
           )}
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-1">
-                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
-                </div>
+                <img src={mascot} alt="Agent360" className="w-7 h-7 rounded-full flex-shrink-0 mt-1 object-cover" />
               )}
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
                 msg.role === 'user'
@@ -156,9 +141,7 @@ export default function AgentChat() {
           ))}
           {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
             <div className="flex gap-3 justify-start">
-              <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-3.5 w-3.5 text-accent-foreground animate-pulse" />
-              </div>
+              <img src={mascot} alt="Agent360" className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
               <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -179,20 +162,17 @@ export default function AgentChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what you need — career advice, resume tips, explore occupations..."
-            className="border-0 bg-transparent resize-none min-h-[80px] max-h-[160px] pr-14 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl text-sm"
+            placeholder="Ask about careers, resumes, assessments..."
+            className="border-0 bg-transparent resize-none min-h-[60px] max-h-[120px] pr-12 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl text-sm"
             disabled={isLoading}
           />
-          <div className="absolute bottom-3 left-3">
-            <Sparkles className="h-4 w-4 text-muted-foreground/40" />
-          </div>
           <Button
-            size="sm"
+            size="icon"
             onClick={sendMessage}
             disabled={!input.trim() || isLoading}
-            className="absolute bottom-3 right-3 rounded-xl h-8 px-4"
+            className="absolute bottom-3 right-3 rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
           >
-            {isLoading ? '...' : 'Get started'}
+            <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
       </div>
