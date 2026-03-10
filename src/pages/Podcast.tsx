@@ -159,7 +159,7 @@ export default function Podcast() {
     if (!user) return;
     
     try {
-      const [interestResult, valuesResult, resumeResult] = await Promise.all([
+      const [interestResult, valuesResult, resumeResult, profileResult2] = await Promise.all([
         supabase
           .from('interest_profiler_results')
           .select('top_interests, scores')
@@ -179,12 +179,19 @@ export default function Podcast() {
           .select('id')
           .eq('user_id', user.id)
           .limit(1)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('linkedin_data')
+          .eq('user_id', user.id)
+          .single()
       ]);
       
       const hasInterests = !!interestResult.data;
       const hasValues = !!valuesResult.data;
       const hasResume = !!resumeResult.data;
+      const linkedInData = (profileResult2.data as any)?.linkedin_data;
+      setHasLinkedIn(!!linkedInData);
       
       setProfileSummary({
         hasResume,
