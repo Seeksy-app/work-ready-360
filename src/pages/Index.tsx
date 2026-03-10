@@ -21,7 +21,7 @@ export default function Index() {
         <div className="absolute inset-0 bg-gradient-to-r from-accent/80 via-accent/50 to-transparent" />
 
         {/* Floating white card — editorial style */}
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-4 relative z-10 flex justify-center">
           <div className="max-w-xl bg-card/80 backdrop-blur-md p-8 md:p-12 rounded-sm shadow-xl animate-slide-up text-center">
             <img
               src={logoColor}
