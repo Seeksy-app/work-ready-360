@@ -371,16 +371,22 @@ export default function Dashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">Create your personalized 3-5 minute career podcast with AI</p>
                   <div className={`flex items-center text-sm font-medium group-hover:gap-2 transition-all ${
-                    hasPodcasts ? 'text-success' : 'text-accent'
+                    podcastLocked ? 'text-muted-foreground' : hasPodcasts ? 'text-success' : 'text-accent'
                   }`}>
-                    <span className="mr-1">▶</span>
-                    {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
-                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    {podcastLocked ? 'Complete previous steps first' : (
+                      <>
+                        <span className="mr-1">▶</span>
+                        {hasPodcasts ? 'Listen to Podcasts' : 'Generate Now'}
+                        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </PodWrapper>
+            );
+          })()}
         </main>
       </div>
 
