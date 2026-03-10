@@ -22,7 +22,7 @@ export default function Index() {
 
         {/* Floating white card — editorial style */}
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-xl bg-card/95 backdrop-blur-sm p-8 md:p-12 rounded-sm shadow-xl animate-slide-up">
+          <div className="max-w-xl bg-card/80 backdrop-blur-md p-8 md:p-12 rounded-sm shadow-xl animate-slide-up text-center">
             <img
               src={logoColor}
               alt="WorkReady360 Leadership Project"
