@@ -292,9 +292,7 @@ export default function Dashboard() {
               hasProfileComplete ? 'border-success/30' : 'hover:shadow-lg hover:border-primary/30 cursor-pointer group'
             }`} style={{ animationDelay: '0.2s' }}>
               <CardContent className="p-6 flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                  hasProfileComplete ? 'bg-success/10' : 'bg-muted'
-                }`}>👤</div>
+                <div className="w-12 h-12 flex items-center justify-center text-2xl">👤</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <h3 className="font-semibold">Complete Profile</h3>
