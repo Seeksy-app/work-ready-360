@@ -143,6 +143,19 @@ ${data.resumeContent.slice(0, 2000)}
 `;
   }
 
+  if (data.linkedinData) {
+    const li = data.linkedinData;
+    userPrompt += `**LinkedIn Profile:**
+Current Role: ${li.job_title || 'N/A'} at ${li.job_company_name || 'N/A'}
+Headline: ${li.headline || 'N/A'}
+Industry: ${li.industry || 'N/A'}
+Skills: ${(li.skills || []).slice(0, 10).join(', ') || 'N/A'}
+Recent Experience: ${(li.experience || []).slice(0, 3).map(e => `${e.title} at ${e.company}`).join('; ') || 'N/A'}
+Education: ${(li.education || []).slice(0, 2).map(e => `${(e.degrees || []).join(', ')} from ${e.school}`).join('; ') || 'N/A'}
+
+`;
+  }
+
   userPrompt += `Create an engaging podcast script that:
 1. Welcomes the listener personally
 2. Discusses their interest profile and what it reveals about them
