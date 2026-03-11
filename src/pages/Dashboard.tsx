@@ -118,6 +118,7 @@ export default function Dashboard() {
     setHasResume((resumeRes.data?.length || 0) > 0);
     setHasPodcasts((podcastRes.data?.length || 0) > 0);
     setCompletionChecked(true);
+  };
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
 
