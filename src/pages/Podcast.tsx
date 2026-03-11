@@ -159,6 +159,7 @@ export default function Podcast() {
   const doGenerateProfile = async () => {
     if (!user) return;
     setIsGenerating(true);
+    setGenerationError(null);
 
     try {
       const [interestResult, valuesResult, resumeResult, profileResult] = await Promise.all([
@@ -209,8 +210,24 @@ export default function Podcast() {
         }
       );
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error || `Server error (${response.status})`;
+        // Friendly messages for known errors
+        if (errorMsg.includes('TTS') || errorMsg.includes('401') || errorMsg.includes('payment')) {
+          throw new Error('Audio generation service is temporarily unavailable. Please try again later or contact support.');
+        }
+        throw new Error(errorMsg);
+      }
+
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to generate podcast');
+      if (!data.success) {
+        const errorMsg = data.error || 'Failed to generate podcast';
+        if (errorMsg.includes('TTS') || errorMsg.includes('401') || errorMsg.includes('payment')) {
+          throw new Error('Audio generation service is temporarily unavailable. Please try again later or contact support.');
+        }
+        throw new Error(errorMsg);
+      }
 
       const audio = data.audioUrl ? new Audio(data.audioUrl) : new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
       setAudioElement(audio);
@@ -222,7 +239,9 @@ export default function Podcast() {
       toast.success('Your career podcast is ready and saved!');
     } catch (error: any) {
       console.error('Podcast generation error:', error);
-      toast.error(error.message || 'Failed to generate podcast');
+      const msg = error.message || 'Failed to generate podcast. Please try again.';
+      setGenerationError(msg);
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
