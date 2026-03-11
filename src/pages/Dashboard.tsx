@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import AgentChat from '@/components/AgentChat';
 import ProfileSheet from '@/components/ProfileSheet';
+import DashboardNav from '@/components/DashboardNav';
 
 function getFormattedDate() {
   return new Date().toLocaleDateString('en-US', {
