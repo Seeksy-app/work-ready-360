@@ -111,10 +111,24 @@ export default function Podcast() {
     setTranscript(podcast.transcript || '');
     setAudioDuration(podcast.duration_seconds || 0);
     setCurrentPodcastTitle(podcast.title);
+    setCurrentPodcastId(podcast.id);
     setPodcastReady(true);
     setProgress(0);
     setIsPlaying(false);
   }, [audioElement]);
+
+  const handleDeletePodcast = useCallback((podcastId: string) => {
+    if (currentPodcastId === podcastId) {
+      audioElement?.pause();
+      setAudioElement(null);
+      setPodcastReady(false);
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentPodcastTitle('');
+      setCurrentPodcastId(null);
+      setTranscript('');
+    }
+  }, [currentPodcastId, audioElement]);
 
   const handlePlayPause = () => {
     if (!audioElement) return;
