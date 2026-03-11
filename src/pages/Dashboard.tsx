@@ -343,7 +343,7 @@ export default function Dashboard() {
 
         <DashboardNav />
 
-        <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
+        <main className="flex-1 px-6 py-8 space-y-8 overflow-auto animate-fade-in">
           {/* Welcome */}
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold mb-1">
