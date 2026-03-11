@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
   const [hasProfileComplete, setHasProfileComplete] = useState(false);
+  const [completionChecked, setCompletionChecked] = useState(false);
   const [hasInterestResults, setHasInterestResults] = useState(false);
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
@@ -116,17 +117,18 @@ export default function Dashboard() {
     setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
     setHasResume((resumeRes.data?.length || 0) > 0);
     setHasPodcasts((podcastRes.data?.length || 0) > 0);
+    setCompletionChecked(true);
   };
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
 
   // Auto-open profile sheet for new users who haven't completed their profile
   useEffect(() => {
-    if (!loading && user && !hasProfileComplete && !profileSheetOpen) {
+    if (completionChecked && !loading && user && !hasProfileComplete && !profileSheetOpen) {
       const timer = setTimeout(() => setProfileSheetOpen(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [loading, user, hasProfileComplete]);
+  }, [completionChecked, loading, user, hasProfileComplete]);
 
   const handleSkipResume = () => {
     setResumeSkipped(true);
