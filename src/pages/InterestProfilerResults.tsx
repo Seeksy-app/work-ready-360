@@ -204,15 +204,12 @@ export default function InterestProfilerResults() {
           </Card>
 
           {/* Right: WOW Wheel Image */}
-          <Card className="animate-slide-up" style={{ animationDelay: '0.05s' }}>
-            <CardHeader>
-              <CardTitle className="text-lg">Your World of Work</CardTitle>
-              <CardDescription>
-                See where your interests map to career clusters and job families
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <div className="relative w-full max-w-md mx-auto">
+          <div className="animate-slide-up flex flex-col items-center justify-center" style={{ animationDelay: '0.05s' }}>
+            <h3 className="text-lg font-semibold text-foreground mb-1">Your World of Work</h3>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+              See where your interests map to career clusters and job families
+            </p>
+            <div className="relative w-full mx-auto">
                 <img
                   src={wowWheelImage}
                   alt="World of Work wheel showing career clusters mapped to RIASEC interest areas"
