@@ -342,6 +342,8 @@ export default function Dashboard() {
           </div>
         </header>
 
+        <DashboardNav />
+
         <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
           {/* Welcome */}
           <div className="animate-fade-in">
