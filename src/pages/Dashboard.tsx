@@ -247,13 +247,13 @@ export default function Dashboard() {
     {
       id: 'podcast',
       title: 'Career Podcast',
-      description: 'Generate a personalized career podcast',
+      description: 'Your personalized career podcast',
       emoji: '🎙️',
       completed: isSequentiallyCompleted(4),
-      skipped: steps[4].skipped,
+      skipped: false,
       stepIndex: 4,
-      href: '/podcast',
-      canSkip: true,
+      href: hasPodcasts ? '/summary' : '/generate-podcast',
+      canSkip: false,
     },
     {
       id: 'curated',
