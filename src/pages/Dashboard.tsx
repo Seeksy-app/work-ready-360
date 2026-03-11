@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
   const [hasProfileComplete, setHasProfileComplete] = useState(false);
+  const [completionChecked, setCompletionChecked] = useState(false);
   const [hasInterestResults, setHasInterestResults] = useState(false);
   const [hasWorkImportanceResults, setHasWorkImportanceResults] = useState(false);
   const [hasResume, setHasResume] = useState(false);
