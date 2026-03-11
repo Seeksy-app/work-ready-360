@@ -99,6 +99,7 @@ export type Database = {
           linkedin_url: string | null
           notifications_enabled: boolean | null
           role: string
+          share_token: string | null
           updated_at: string
           user_id: string
           zip_code: string | null
@@ -112,6 +113,7 @@ export type Database = {
           linkedin_url?: string | null
           notifications_enabled?: boolean | null
           role?: string
+          share_token?: string | null
           updated_at?: string
           user_id: string
           zip_code?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           linkedin_url?: string | null
           notifications_enabled?: boolean | null
           role?: string
+          share_token?: string | null
           updated_at?: string
           user_id?: string
           zip_code?: string | null

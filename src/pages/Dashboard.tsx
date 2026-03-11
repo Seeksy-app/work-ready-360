@@ -158,7 +158,7 @@ export default function Dashboard() {
     { id: 2, title: 'Interest Profiler', completed: hasInterestResults, skipped: false, canSkip: false },
     { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults, skipped: false, canSkip: false },
     { id: 4, title: 'Upload Resume', completed: resumeCompleted, skipped: resumeSkipped && !hasResume, canSkip: true },
-    { id: 5, title: 'Career Podcast', completed: podcastCompleted, skipped: podcastSkipped && !hasPodcasts, canSkip: true },
+    { id: 5, title: 'Career Podcast', completed: podcastCompleted, skipped: false, canSkip: false },
   ];
 
   const isSequentiallyCompleted = (index: number): boolean => {
@@ -182,7 +182,7 @@ export default function Dashboard() {
     1: () => navigate(hasInterestResults ? '/assessment/interest/results' : '/assessment/interest'),
     2: () => navigate(hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance'),
     3: () => navigate('/resume'),
-    4: () => navigate('/podcast'),
+    4: () => navigate(hasPodcasts ? '/summary' : '/generate-podcast'),
   };
 
   const stepTooltips = [
@@ -247,13 +247,13 @@ export default function Dashboard() {
     {
       id: 'podcast',
       title: 'Career Podcast',
-      description: 'Generate a personalized career podcast',
+      description: 'Your personalized career podcast',
       emoji: '🎙️',
       completed: isSequentiallyCompleted(4),
-      skipped: steps[4].skipped,
+      skipped: false,
       stepIndex: 4,
-      href: '/podcast',
-      canSkip: true,
+      href: hasPodcasts ? '/summary' : '/generate-podcast',
+      canSkip: false,
     },
     {
       id: 'curated',
