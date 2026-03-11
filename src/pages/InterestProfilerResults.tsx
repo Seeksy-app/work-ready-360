@@ -36,14 +36,6 @@ const categoryAngles: Record<string, number> = {
   C: 240,
 };
 
-const categoryColors: Record<string, string> = {
-  R: 'hsl(var(--primary))',
-  I: 'hsl(45, 93%, 47%)',
-  A: 'hsl(45, 93%, 58%)',
-  S: 'hsl(45, 93%, 47%)',
-  E: 'hsl(var(--primary))',
-  C: 'hsl(45, 93%, 58%)',
-};
 
 export default function InterestProfilerResults() {
   const { user, loading: authLoading } = useAuth();
