@@ -117,7 +117,7 @@ export default function Dashboard() {
     setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
     setHasResume((resumeRes.data?.length || 0) > 0);
     setHasPodcasts((podcastRes.data?.length || 0) > 0);
-  };
+    setCompletionChecked(true);
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
 
