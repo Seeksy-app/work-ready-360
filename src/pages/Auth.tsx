@@ -109,22 +109,15 @@ export default function Auth() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-accent/80 via-accent/60 to-accent/80" />
 
-      <div className="w-full max-w-md space-y-8 relative z-10">
-        {/* Logo & Brand */}
-        <div className="text-center space-y-2 animate-fade-in">
-          <img
-            src={logoColor}
-            alt="WorkReady360"
-            className="h-20 md:h-24 mx-auto mb-4 object-contain"
-          />
-          <p className="text-white/80 text-base drop-shadow-md">
-            Your personalized career podcast awaits
-          </p>
-        </div>
-
+      <div className="w-full max-w-lg space-y-8 relative z-10">
         {/* Auth Card — transparent like home page */}
         <Card className="border-0 shadow-xl animate-slide-up bg-card/30 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-4">
+          <CardHeader className="space-y-4 pb-4 pt-8">
+            <img
+              src={logoColor}
+              alt="WorkReady360"
+              className="h-20 md:h-24 mx-auto object-contain"
+            />
             <CardTitle className="text-2xl text-center text-white drop-shadow-md">Get Started</CardTitle>
             <CardDescription className="text-center text-white/70">
               Sign in or create an account to continue
