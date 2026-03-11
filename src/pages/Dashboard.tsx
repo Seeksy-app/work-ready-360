@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [podcastSkipped, setPodcastSkipped] = useState(() => localStorage.getItem('wr360_podcast_skipped') === 'true');
   const prevCompleted = useRef<Set<string>>(new Set());
   const [weather, setWeather] = useState<string | null>(null);
+  const [showRegenDialog, setShowRegenDialog] = useState(false);
 
   const fireConfetti = () => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#10b981', '#6366f1', '#ec4899'] });
