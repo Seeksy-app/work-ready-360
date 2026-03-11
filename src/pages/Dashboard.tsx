@@ -576,6 +576,35 @@ export default function Dashboard() {
         onOpenChange={setProfileSheetOpen}
         onSaved={checkCompletionStatus}
       />
+
+      {/* Re-generate Podcast Dialog */}
+      <AlertDialog open={showRegenDialog} onOpenChange={setShowRegenDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-primary" />
+              Your profile has been updated
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              It looks like you've updated your assessments or resume since your last podcast was generated. Would you like to create a new podcast with your latest data?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              sessionStorage.setItem('wr360_regen_dismissed', 'true');
+              setShowRegenDialog(false);
+            }}>
+              Not now
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowRegenDialog(false);
+              navigate('/generate-podcast');
+            }}>
+              Generate New Podcast
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
