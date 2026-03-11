@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   Loader2, 
   Play, 
@@ -30,9 +41,10 @@ interface SavedPodcast {
 
 interface SavedPodcastsProps {
   onPlayPodcast: (podcast: SavedPodcast) => void;
+  onDeletePodcast?: (podcastId: string) => void;
 }
 
-export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
+export default function SavedPodcasts({ onPlayPodcast, onDeletePodcast }: SavedPodcastsProps) {
   const { user } = useAuth();
   const [podcasts, setPodcasts] = useState<SavedPodcast[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,15 +100,18 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
     
     setDeletingId(podcastId);
     try {
-      // Get podcast to find the file path
       const podcast = podcasts.find(p => p.id === podcastId);
       if (!podcast) return;
 
-      // Delete from storage
+      // Stop playback if this podcast is playing
+      if (playingId === podcastId) {
+        audioRef.current?.pause();
+        setPlayingId(null);
+      }
+
       const fileName = `${user.id}/${podcastId}.mp3`;
       await supabase.storage.from('podcasts').remove([fileName]);
 
-      // Delete from database
       const { error } = await supabase
         .from('podcasts')
         .delete()
@@ -105,6 +120,7 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
       if (error) throw error;
 
       setPodcasts(prev => prev.filter(p => p.id !== podcastId));
+      onDeletePodcast?.(podcastId);
       toast.success('Podcast deleted');
     } catch (error) {
       console.error('Failed to delete podcast:', error);
@@ -157,7 +173,6 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
         <Card key={podcast.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              {/* Play Button */}
               <Button
                 variant="outline"
                 size="icon"
@@ -171,7 +186,6 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
                 )}
               </Button>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {podcast.occupation_code ? (
@@ -198,7 +212,6 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="accent"
@@ -207,19 +220,39 @@ export default function SavedPodcasts({ onPlayPodcast }: SavedPodcastsProps) {
                 >
                   Open Player
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(podcast.id)}
-                  disabled={deletingId === podcast.id}
-                >
-                  {deletingId === podcast.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      disabled={deletingId === podcast.id}
+                    >
+                      {deletingId === podcast.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete podcast?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{podcast.title}". This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(podcast.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>
