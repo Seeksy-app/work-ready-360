@@ -43,6 +43,8 @@ const App = () => (
             <Route path="/podcast" element={<Podcast />} />
             <Route path="/careers" element={<CareerExplorer />} />
             <Route path="/knowledge" element={<KnowledgeBase />} />
+            <Route path="/summary" element={<MySummary />} />
+            <Route path="/generate-podcast" element={<GeneratePodcast />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/wip" element={<AdminWip />} />
             <Route path="/admin/wip/:sessionId" element={<AdminWipSession />} />
