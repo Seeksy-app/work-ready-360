@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw } from 'lucide-react';
-import { getMatchingCareers } from '@/lib/onet';
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
 import wowWheelImage from '@/assets/wow-wheel.png';
 
 const categoryNames: Record<string, string> = {
