@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, Target, Mic } from 'lucide-react';
 import { z } from 'zod';
+import heroImage from '@/assets/hero-workplace.jpg';
+import logoColor from '@/assets/logo-color.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
