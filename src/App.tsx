@@ -19,6 +19,8 @@ import Admin from "./pages/Admin";
 import AdminWip from "./pages/AdminWip";
 import AdminWipSession from "./pages/AdminWipSession";
 import NotFound from "./pages/NotFound";
+import MySummary from "./pages/MySummary";
+import GeneratePodcast from "./pages/GeneratePodcast";
 
 const queryClient = new QueryClient();
 
