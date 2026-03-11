@@ -420,6 +420,11 @@ export default function Podcast() {
                       This may take 1-2 minutes. Please don't close this page.
                     </p>
                   )}
+                  {generationError && !isGenerating && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive text-center">
+                      {generationError}
+                    </div>
+                  )}
                 </CardContent>
               )}
             </Card>
