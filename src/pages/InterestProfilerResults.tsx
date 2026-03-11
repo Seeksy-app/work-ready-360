@@ -45,20 +45,12 @@ const categoryColors: Record<string, string> = {
   C: 'hsl(45, 93%, 58%)',
 };
 
-interface MatchingCareer {
-  code: string;
-  title: string;
-  fit?: string;
-}
-
 export default function InterestProfilerResults() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [results, setResults] = useState<{ category: string; score: number }[]>([]);
-  const [matchingCareers, setMatchingCareers] = useState<MatchingCareer[]>([]);
-  const [loadingCareers, setLoadingCareers] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,37 +84,10 @@ export default function InterestProfilerResults() {
       setResults(sortedResults);
       setCompletedAt(data.completed_at);
       setLoading(false);
-
-      fetchMatchingCareers(rawScores);
     };
 
     fetchResults();
   }, [user, authLoading, navigate]);
-
-  const fetchMatchingCareers = async (s: Record<string, number>) => {
-    setLoadingCareers(true);
-    try {
-      const answers: number[] = [];
-      const categories = ['R', 'I', 'A', 'S', 'E', 'C'];
-      categories.forEach(cat => {
-        const score = s[cat] || 0;
-        const avgScore = Math.round(score / 6);
-        for (let i = 0; i < 6; i++) {
-          answers.push(Math.max(1, Math.min(5, avgScore)));
-        }
-      });
-
-      const result = await getMatchingCareers(answers, undefined, 0, 10);
-      if (result?.career) {
-        setMatchingCareers(result.career);
-      }
-    } catch (error) {
-      console.error('Failed to fetch matching careers:', error);
-      toast.error('Failed to load matching careers');
-    } finally {
-      setLoadingCareers(false);
-    }
-  };
 
   const topCodes = results.slice(0, 3).map(r => r.category);
 
