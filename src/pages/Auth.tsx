@@ -100,40 +100,47 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Background image like home page */}
+      <img
+        src={heroImage}
+        alt="Workplace background"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/80 via-accent/60 to-accent/80" />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Logo & Brand */}
         <div className="text-center space-y-2 animate-fade-in">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
-              <Mic className="h-6 w-6 text-primary-foreground" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-primary-foreground">WorkReady360</h1>
-          <p className="text-primary-foreground/70">
+          <img
+            src={logoColor}
+            alt="WorkReady360"
+            className="h-20 md:h-24 mx-auto mb-4 object-contain"
+          />
+          <p className="text-white/80 text-base drop-shadow-md">
             Your personalized career podcast awaits
           </p>
         </div>
 
-        {/* Auth Card */}
-        <Card className="border-0 shadow-xl animate-slide-up">
+        {/* Auth Card — transparent like home page */}
+        <Card className="border-0 shadow-xl animate-slide-up bg-card/30 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl text-center">Get Started</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="text-2xl text-center text-white drop-shadow-md">Get Started</CardTitle>
+            <CardDescription className="text-center text-white/70">
               Sign in or create an account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10">
+                <TabsTrigger value="login" className="data-[state=active]:bg-white/20 text-white">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-white/20 text-white">Sign Up</TabsTrigger>
               </TabsList>
               
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email" className="text-white/90">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -141,10 +148,11 @@ export default function Auth() {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
+                      className="bg-white/90 border-white/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password" className="text-white/90">Password</Label>
                     <Input
                       id="login-password"
                       type="password"
@@ -152,6 +160,7 @@ export default function Auth() {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
+                      className="bg-white/90 border-white/20"
                     />
                   </div>
                   <Button
@@ -173,17 +182,18 @@ export default function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-white/90">Full Name</Label>
                     <Input
                       id="signup-name"
                       type="text"
                       placeholder="John Doe"
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
+                      className="bg-white/90 border-white/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-white/90">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -191,10 +201,11 @@ export default function Auth() {
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
+                      className="bg-white/90 border-white/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-white/90">Password</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -202,6 +213,7 @@ export default function Auth() {
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
+                      className="bg-white/90 border-white/20"
                     />
                   </div>
                   <Button
@@ -226,16 +238,16 @@ export default function Auth() {
         {/* Features */}
         <div className="grid grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
           <div className="text-center p-3 rounded-xl glass-dark">
-            <Target className="h-5 w-5 mx-auto mb-1 text-accent" />
-            <p className="text-xs text-primary-foreground/80">Career Assessment</p>
+            <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs text-white/80">Career Assessment</p>
           </div>
           <div className="text-center p-3 rounded-xl glass-dark">
-            <Sparkles className="h-5 w-5 mx-auto mb-1 text-accent" />
-            <p className="text-xs text-primary-foreground/80">AI Insights</p>
+            <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs text-white/80">AI Insights</p>
           </div>
           <div className="text-center p-3 rounded-xl glass-dark">
-            <Mic className="h-5 w-5 mx-auto mb-1 text-accent" />
-            <p className="text-xs text-primary-foreground/80">Custom Podcasts</p>
+            <Mic className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs text-white/80">Custom Podcasts</p>
           </div>
         </div>
       </div>
