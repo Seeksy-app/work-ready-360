@@ -182,7 +182,7 @@ export default function Dashboard() {
     1: () => navigate(hasInterestResults ? '/assessment/interest/results' : '/assessment/interest'),
     2: () => navigate(hasWorkImportanceResults ? '/assessment/work-importance/results' : '/assessment/work-importance'),
     3: () => navigate('/resume'),
-    4: () => navigate('/podcast'),
+    4: () => navigate(hasPodcasts ? '/summary' : '/generate-podcast'),
   };
 
   const stepTooltips = [
