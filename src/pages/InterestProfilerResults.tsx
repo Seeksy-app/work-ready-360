@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw, Globe } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw } from 'lucide-react';
 import { getMatchingCareers } from '@/lib/onet';
-import WowWheel from '@/components/WowWheel';
+import wowWheelImage from '@/assets/wow-wheel.png';
 
 const categoryNames: Record<string, string> = {
   R: "Realistic",
@@ -27,6 +27,25 @@ const categoryDescriptions: Record<string, string> = {
   S: "Helping, teaching, and serving others",
   E: "Leading, persuading, and business",
   C: "Organizing data, records, and processes",
+};
+
+// Map RIASEC codes to approximate rotation angles on the WOW wheel image
+const categoryAngles: Record<string, number> = {
+  S: 0,
+  A: 60,
+  R: 120,
+  I: 180,
+  E: 300,
+  C: 240,
+};
+
+const categoryColors: Record<string, string> = {
+  R: 'hsl(var(--primary))',
+  I: 'hsl(45, 93%, 47%)',
+  A: 'hsl(45, 93%, 58%)',
+  S: 'hsl(45, 93%, 47%)',
+  E: 'hsl(var(--primary))',
+  C: 'hsl(45, 93%, 58%)',
 };
 
 interface MatchingCareer {
@@ -120,35 +139,40 @@ export default function InterestProfilerResults() {
 
   return (
     <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-3xl">
+      <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
-        <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
+        <div className="mb-6">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-        </div>
-
-        {/* Results Summary */}
-        <Card className="mb-6 animate-scale-in">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="h-8 w-8 text-success" />
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
-            <CardTitle className="text-2xl">Your Interest Profiler Results</CardTitle>
-            <CardDescription>
+            <h1 className="text-2xl font-bold text-foreground">Your Interest Profiler Results</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Based on the RIASEC model
               {completedAt && (
-                <span className="block mt-1 text-xs">
+                <span className="block text-xs mt-0.5">
                   Completed {new Date(completedAt).toLocaleDateString()}
                 </span>
               )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+            </p>
+          </div>
+        </div>
+
+        {/* Two-column layout: Results left, WOW right */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left: Score Results */}
+          <Card className="animate-scale-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Your RIASEC Scores</CardTitle>
+              <CardDescription>Ranked by strength of interest</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
               {results.map((result, index) => (
-                <div key={result.category} className="space-y-2">
+                <div key={result.category} className="space-y-1.5">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -166,42 +190,89 @@ export default function InterestProfilerResults() {
                   </p>
                 </div>
               ))}
-            </div>
 
-            <div className="pt-4 border-t">
-              <h4 className="font-semibold mb-2">Your Top Interest Areas:</h4>
-              <div className="flex flex-wrap gap-2">
-                {topCodes.map(code => (
-                  <span key={code} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                    {categoryNames[code]}
-                  </span>
-                ))}
+              <div className="pt-4 border-t">
+                <h4 className="font-semibold mb-2 text-sm">Your Top Interest Areas:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {topCodes.map(code => (
+                    <span key={code} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                      {categoryNames[code]}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* World of Work Wheel */}
-        <Card className="mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Globe className="h-5 w-5 text-accent" />
+          {/* Right: WOW Wheel Image */}
+          <Card className="animate-slide-up" style={{ animationDelay: '0.05s' }}>
+            <CardHeader>
+              <CardTitle className="text-lg">Your World of Work</CardTitle>
+              <CardDescription>
+                See where your interests map to career clusters and job families
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <div className="relative w-full max-w-md mx-auto">
+                <img
+                  src={wowWheelImage}
+                  alt="World of Work wheel showing career clusters mapped to RIASEC interest areas"
+                  className="w-full h-auto"
+                />
+                {/* Overlay highlight markers for top 3 codes */}
+                <svg
+                  viewBox="0 0 400 400"
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                >
+                  {topCodes.map((code, i) => {
+                    const angle = categoryAngles[code];
+                    const radians = ((angle - 90) * Math.PI) / 180;
+                    const cx = 200 + Math.cos(radians) * 145;
+                    const cy = 200 + Math.sin(radians) * 145;
+                    return (
+                      <g key={code}>
+                        {/* Pulsing ring */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={22}
+                          fill="none"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2.5}
+                          opacity={0.7}
+                          className="animate-pulse"
+                        />
+                        {/* Rank badge */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={14}
+                          fill="hsl(var(--primary))"
+                        />
+                        <text
+                          x={cx}
+                          y={cy + 1}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="white"
+                          fontSize="11"
+                          fontWeight="bold"
+                        >
+                          #{i + 1}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
               </div>
-              <div>
-                <CardTitle className="text-lg">Your World of Work</CardTitle>
-                <CardDescription>
-                  See where your interests map to career clusters and job families
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <WowWheel scores={scores} topCodes={topCodes} />
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
+                Your top interests are highlighted on the wheel. Each section maps to career families you may want to explore.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Matching Careers */}
+        {/* Matching Careers - full width */}
         <Card className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -223,7 +294,7 @@ export default function InterestProfilerResults() {
                 <span className="ml-2 text-muted-foreground">Finding matching careers...</span>
               </div>
             ) : matchingCareers.length > 0 ? (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {matchingCareers.map((career, index) => (
                   <div 
                     key={career.code} 
