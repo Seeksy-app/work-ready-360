@@ -123,11 +123,11 @@ export default function Dashboard() {
 
   // Auto-open profile sheet for new users who haven't completed their profile
   useEffect(() => {
-    if (!loading && user && !hasProfileComplete && !profileSheetOpen) {
+    if (completionChecked && !loading && user && !hasProfileComplete && !profileSheetOpen) {
       const timer = setTimeout(() => setProfileSheetOpen(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [loading, user, hasProfileComplete]);
+  }, [completionChecked, loading, user, hasProfileComplete]);
 
   const handleSkipResume = () => {
     setResumeSkipped(true);
