@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
 import wowWheelImage from '@/assets/wow-wheel.png';
 
