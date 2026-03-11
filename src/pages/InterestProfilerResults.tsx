@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw, Globe } from 'lucide-react';
 import { getMatchingCareers } from '@/lib/onet';
+import WowWheel from '@/components/WowWheel';
 
 const categoryNames: Record<string, string> = {
   R: "Realistic",
@@ -38,6 +39,7 @@ export default function InterestProfilerResults() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState<Record<string, number>>({});
   const [results, setResults] = useState<{ category: string; score: number }[]>([]);
   const [matchingCareers, setMatchingCareers] = useState<MatchingCareer[]>([]);
   const [loadingCareers, setLoadingCareers] = useState(false);
@@ -61,13 +63,13 @@ export default function InterestProfilerResults() {
         .single();
 
       if (error || !data) {
-        // No results found, redirect to assessment
         navigate('/assessment/interest');
         return;
       }
 
-      const scores = data.scores as Record<string, number>;
-      const sortedResults = Object.entries(scores)
+      const rawScores = data.scores as Record<string, number>;
+      setScores(rawScores);
+      const sortedResults = Object.entries(rawScores)
         .map(([category, score]) => ({ category, score }))
         .sort((a, b) => b.score - a.score);
 
@@ -75,24 +77,19 @@ export default function InterestProfilerResults() {
       setCompletedAt(data.completed_at);
       setLoading(false);
 
-      // Fetch matching careers based on the scores
-      fetchMatchingCareers(scores);
+      fetchMatchingCareers(rawScores);
     };
 
     fetchResults();
   }, [user, authLoading, navigate]);
 
-  const fetchMatchingCareers = async (scores: Record<string, number>) => {
+  const fetchMatchingCareers = async (s: Record<string, number>) => {
     setLoadingCareers(true);
     try {
-      // Convert scores to answer format (1-5 scale per question, 6 questions per category)
-      // The O*NET API expects answers array with values 1-5 for each question
       const answers: number[] = [];
       const categories = ['R', 'I', 'A', 'S', 'E', 'C'];
-      
       categories.forEach(cat => {
-        const score = scores[cat] || 0;
-        // Convert category score (0-30) to 6 individual answers (1-5)
+        const score = s[cat] || 0;
         const avgScore = Math.round(score / 6);
         for (let i = 0; i < 6; i++) {
           answers.push(Math.max(1, Math.min(5, avgScore)));
@@ -100,7 +97,6 @@ export default function InterestProfilerResults() {
       });
 
       const result = await getMatchingCareers(answers, undefined, 0, 10);
-      
       if (result?.career) {
         setMatchingCareers(result.career);
       }
@@ -112,9 +108,7 @@ export default function InterestProfilerResults() {
     }
   };
 
-  const handleRetakeAssessment = () => {
-    navigate('/assessment/interest');
-  };
+  const topCodes = results.slice(0, 3).map(r => r.category);
 
   if (authLoading || loading) {
     return (
@@ -135,7 +129,7 @@ export default function InterestProfilerResults() {
           </Button>
         </div>
 
-        {/* Results Card */}
+        {/* Results Summary */}
         <Card className="mb-6 animate-scale-in">
           <CardHeader className="text-center">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
@@ -177,9 +171,9 @@ export default function InterestProfilerResults() {
             <div className="pt-4 border-t">
               <h4 className="font-semibold mb-2">Your Top Interest Areas:</h4>
               <div className="flex flex-wrap gap-2">
-                {results.slice(0, 3).map(r => (
-                  <span key={r.category} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                    {categoryNames[r.category]}
+                {topCodes.map(code => (
+                  <span key={code} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                    {categoryNames[code]}
                   </span>
                 ))}
               </div>
@@ -187,7 +181,27 @@ export default function InterestProfilerResults() {
           </CardContent>
         </Card>
 
-        {/* Matching Careers Card */}
+        {/* World of Work Wheel */}
+        <Card className="mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Globe className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Your World of Work</CardTitle>
+                <CardDescription>
+                  See where your interests map to career clusters and job families
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <WowWheel scores={scores} topCodes={topCodes} />
+          </CardContent>
+        </Card>
+
+        {/* Matching Careers */}
         <Card className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -254,7 +268,7 @@ export default function InterestProfilerResults() {
 
         {/* Action Buttons */}
         <div className="flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={handleRetakeAssessment}>
+          <Button variant="outline" className="flex-1" onClick={() => navigate('/assessment/interest')}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Retake Assessment
           </Button>
