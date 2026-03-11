@@ -120,17 +120,33 @@ export default function Dashboard() {
     if (!user) return;
     const [profileRes, interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
       supabase.from('profiles').select('zip_code').eq('user_id', user.id).single(),
-      supabase.from('interest_profiler_results').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('work_importance_results').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('resumes').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('podcasts').select('id').eq('user_id', user.id).eq('status', 'completed').limit(1),
+      supabase.from('interest_profiler_results').select('id, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(1),
+      supabase.from('work_importance_results').select('id, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(1),
+      supabase.from('resumes').select('id, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
+      supabase.from('podcasts').select('id, created_at').eq('user_id', user.id).eq('status', 'completed').order('created_at', { ascending: false }).limit(1),
     ]);
+    const hadPodcastsBefore = hasPodcasts;
     setHasProfileComplete(!!(profileRes.data as any)?.zip_code);
     setHasInterestResults((interestRes.data?.length || 0) > 0);
     setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
     setHasResume((resumeRes.data?.length || 0) > 0);
-    setHasPodcasts((podcastRes.data?.length || 0) > 0);
+    const nowHasPodcasts = (podcastRes.data?.length || 0) > 0;
+    setHasPodcasts(nowHasPodcasts);
     setCompletionChecked(true);
+
+    // Check if profile data is newer than latest podcast
+    if (nowHasPodcasts && podcastRes.data?.[0]) {
+      const podcastDate = new Date(podcastRes.data[0].created_at).getTime();
+      const newerData = [
+        interestRes.data?.[0]?.completed_at,
+        workRes.data?.[0]?.completed_at,
+        resumeRes.data?.[0]?.created_at,
+      ].some(d => d && new Date(d).getTime() > podcastDate);
+
+      if (newerData && !sessionStorage.getItem('wr360_regen_dismissed')) {
+        setShowRegenDialog(true);
+      }
+    }
   };
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
