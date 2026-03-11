@@ -264,8 +264,7 @@ export default function InterestProfilerResults() {
               <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
                 Your top interests are highlighted on the wheel. Each section maps to career families you may want to explore.
               </p>
-            </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Matching Careers - full width */}
