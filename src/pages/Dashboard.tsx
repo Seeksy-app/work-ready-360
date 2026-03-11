@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import AgentChat from '@/components/AgentChat';
 import ProfileSheet from '@/components/ProfileSheet';
+import DashboardNav from '@/components/DashboardNav';
 
 function getFormattedDate() {
   return new Date().toLocaleDateString('en-US', {
@@ -340,6 +341,8 @@ export default function Dashboard() {
             </div>
           </div>
         </header>
+
+        <DashboardNav />
 
         <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
           {/* Welcome */}
