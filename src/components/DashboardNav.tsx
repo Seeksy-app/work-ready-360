@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { User, FileText, BarChart3, Mic, BookOpen, Compass } from 'lucide-react';
+import { FileText, BarChart3, Mic, BookOpen, Compass, User } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: BarChart3 },
+  { label: 'My Summary', href: '/summary', icon: User },
   { label: 'Resume', href: '/resume', icon: FileText },
   { label: 'Podcasts', href: '/podcast', icon: Mic },
   { label: 'Careers', href: '/careers', icon: Compass },
