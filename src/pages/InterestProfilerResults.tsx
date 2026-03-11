@@ -3,12 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Briefcase, RefreshCw } from 'lucide-react';
-import { getMatchingCareers } from '@/lib/onet';
+import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
 import wowWheelImage from '@/assets/wow-wheel.png';
 
 const categoryNames: Record<string, string> = {
@@ -39,20 +36,6 @@ const categoryAngles: Record<string, number> = {
   C: 240,
 };
 
-const categoryColors: Record<string, string> = {
-  R: 'hsl(var(--primary))',
-  I: 'hsl(45, 93%, 47%)',
-  A: 'hsl(45, 93%, 58%)',
-  S: 'hsl(45, 93%, 47%)',
-  E: 'hsl(var(--primary))',
-  C: 'hsl(45, 93%, 58%)',
-};
-
-interface MatchingCareer {
-  code: string;
-  title: string;
-  fit?: string;
-}
 
 export default function InterestProfilerResults() {
   const { user, loading: authLoading } = useAuth();
@@ -60,8 +43,6 @@ export default function InterestProfilerResults() {
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [results, setResults] = useState<{ category: string; score: number }[]>([]);
-  const [matchingCareers, setMatchingCareers] = useState<MatchingCareer[]>([]);
-  const [loadingCareers, setLoadingCareers] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,37 +76,10 @@ export default function InterestProfilerResults() {
       setResults(sortedResults);
       setCompletedAt(data.completed_at);
       setLoading(false);
-
-      fetchMatchingCareers(rawScores);
     };
 
     fetchResults();
   }, [user, authLoading, navigate]);
-
-  const fetchMatchingCareers = async (s: Record<string, number>) => {
-    setLoadingCareers(true);
-    try {
-      const answers: number[] = [];
-      const categories = ['R', 'I', 'A', 'S', 'E', 'C'];
-      categories.forEach(cat => {
-        const score = s[cat] || 0;
-        const avgScore = Math.round(score / 6);
-        for (let i = 0; i < 6; i++) {
-          answers.push(Math.max(1, Math.min(5, avgScore)));
-        }
-      });
-
-      const result = await getMatchingCareers(answers, undefined, 0, 10);
-      if (result?.career) {
-        setMatchingCareers(result.career);
-      }
-    } catch (error) {
-      console.error('Failed to fetch matching careers:', error);
-      toast.error('Failed to load matching careers');
-    } finally {
-      setLoadingCareers(false);
-    }
-  };
 
   const topCodes = results.slice(0, 3).map(r => r.category);
 
@@ -168,7 +122,7 @@ export default function InterestProfilerResults() {
           <Card className="animate-scale-in">
             <CardHeader>
               <CardTitle className="text-lg">Your RIASEC Scores</CardTitle>
-              <CardDescription>Ranked by strength of interest</CardDescription>
+              <p className="text-sm text-muted-foreground">Ranked by strength of interest</p>
             </CardHeader>
             <CardContent className="space-y-5">
               {results.map((result, index) => (
@@ -205,15 +159,12 @@ export default function InterestProfilerResults() {
           </Card>
 
           {/* Right: WOW Wheel Image */}
-          <Card className="animate-slide-up" style={{ animationDelay: '0.05s' }}>
-            <CardHeader>
-              <CardTitle className="text-lg">Your World of Work</CardTitle>
-              <CardDescription>
-                See where your interests map to career clusters and job families
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <div className="relative w-full max-w-md mx-auto">
+          <div className="animate-slide-up flex flex-col items-center justify-center" style={{ animationDelay: '0.05s' }}>
+            <h3 className="text-lg font-semibold text-foreground mb-1">Your World of Work</h3>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+              See where your interests map to career clusters and job families
+            </p>
+            <div className="relative w-full mx-auto">
                 <img
                   src={wowWheelImage}
                   alt="World of Work wheel showing career clusters mapped to RIASEC interest areas"
@@ -268,74 +219,8 @@ export default function InterestProfilerResults() {
               <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
                 Your top interests are highlighted on the wheel. Each section maps to career families you may want to explore.
               </p>
-            </CardContent>
-          </Card>
+          </div>
         </div>
-
-        {/* Matching Careers - full width */}
-        <Card className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Briefcase className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Matching Careers</CardTitle>
-                <CardDescription>
-                  Occupations that align with your vocational preferences
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loadingCareers ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Finding matching careers...</span>
-              </div>
-            ) : matchingCareers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {matchingCareers.map((career, index) => (
-                  <div 
-                    key={career.code} 
-                    className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/careers?code=${career.code}`)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </span>
-                      <div>
-                        <p className="font-medium text-sm">{career.title}</p>
-                        <p className="text-xs text-muted-foreground">{career.code}</p>
-                      </div>
-                    </div>
-                    {career.fit && (
-                      <Badge variant="secondary" className="text-xs">
-                        {career.fit}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                No matching careers found. Try exploring careers manually.
-              </p>
-            )}
-
-            {matchingCareers.length > 0 && (
-              <Button 
-                variant="outline" 
-                className="w-full mt-4"
-                onClick={() => navigate('/careers')}
-              >
-                Explore More Careers
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
