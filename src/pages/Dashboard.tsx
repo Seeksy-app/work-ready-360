@@ -158,7 +158,7 @@ export default function Dashboard() {
     { id: 2, title: 'Interest Profiler', completed: hasInterestResults, skipped: false, canSkip: false },
     { id: 3, title: 'Work Importance', completed: hasWorkImportanceResults, skipped: false, canSkip: false },
     { id: 4, title: 'Upload Resume', completed: resumeCompleted, skipped: resumeSkipped && !hasResume, canSkip: true },
-    { id: 5, title: 'Career Podcast', completed: podcastCompleted, skipped: podcastSkipped && !hasPodcasts, canSkip: true },
+    { id: 5, title: 'Career Podcast', completed: podcastCompleted, skipped: false, canSkip: false },
   ];
 
   const isSequentiallyCompleted = (index: number): boolean => {
