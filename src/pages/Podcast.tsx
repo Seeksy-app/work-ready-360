@@ -78,6 +78,8 @@ export default function Podcast() {
   // Panel state
   const [showGeneratePanel, setShowGeneratePanel] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [currentPodcastId, setCurrentPodcastId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
