@@ -173,7 +173,7 @@ export default function MySummary() {
     <div className="min-h-screen bg-background flex flex-col">
       <DashboardNav />
 
-      <main className="flex-1 py-8">
+      <main className="flex-1 py-8 animate-fade-in">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

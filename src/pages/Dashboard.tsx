@@ -307,8 +307,7 @@ export default function Dashboard() {
         <header className="border-b bg-accent backdrop-blur-sm sticky top-0 z-50">
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={logo360} alt="WorkReady360" className="h-9 w-9 rounded-lg object-cover" />
-              <span className="text-xl font-bold text-accent-foreground tracking-tight">WorkReady360</span>
+              <img src={logo360} alt="WorkReady360" className="h-10 w-10 rounded object-contain" />
             </div>
 
             <div className="flex items-center gap-3">
@@ -344,7 +343,7 @@ export default function Dashboard() {
 
         <DashboardNav />
 
-        <main className="flex-1 px-6 py-8 space-y-8 overflow-auto">
+        <main className="flex-1 px-6 py-8 space-y-8 overflow-auto animate-fade-in">
           {/* Welcome */}
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold mb-1">

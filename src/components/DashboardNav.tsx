@@ -27,7 +27,7 @@ export default function DashboardNav() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                 isActive
-                  ? 'border-primary text-primary'
+                  ? 'border-accent text-accent'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               )}
             >
