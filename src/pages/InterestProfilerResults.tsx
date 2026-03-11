@@ -122,7 +122,7 @@ export default function InterestProfilerResults() {
           <Card className="animate-scale-in">
             <CardHeader>
               <CardTitle className="text-lg">Your RIASEC Scores</CardTitle>
-              <CardDescription>Ranked by strength of interest</CardDescription>
+              <p className="text-sm text-muted-foreground">Ranked by strength of interest</p>
             </CardHeader>
             <CardContent className="space-y-5">
               {results.map((result, index) => (
