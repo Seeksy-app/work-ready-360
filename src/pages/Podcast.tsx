@@ -78,6 +78,8 @@ export default function Podcast() {
   // Panel state
   const [showGeneratePanel, setShowGeneratePanel] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [currentPodcastId, setCurrentPodcastId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -109,10 +111,24 @@ export default function Podcast() {
     setTranscript(podcast.transcript || '');
     setAudioDuration(podcast.duration_seconds || 0);
     setCurrentPodcastTitle(podcast.title);
+    setCurrentPodcastId(podcast.id);
     setPodcastReady(true);
     setProgress(0);
     setIsPlaying(false);
   }, [audioElement]);
+
+  const handleDeletePodcast = useCallback((podcastId: string) => {
+    if (currentPodcastId === podcastId) {
+      audioElement?.pause();
+      setAudioElement(null);
+      setPodcastReady(false);
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentPodcastTitle('');
+      setCurrentPodcastId(null);
+      setTranscript('');
+    }
+  }, [currentPodcastId, audioElement]);
 
   const handlePlayPause = () => {
     if (!audioElement) return;
@@ -143,6 +159,7 @@ export default function Podcast() {
   const doGenerateProfile = async () => {
     if (!user) return;
     setIsGenerating(true);
+    setGenerationError(null);
 
     try {
       const [interestResult, valuesResult, resumeResult, profileResult] = await Promise.all([
@@ -193,8 +210,24 @@ export default function Podcast() {
         }
       );
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error || `Server error (${response.status})`;
+        // Friendly messages for known errors
+        if (errorMsg.includes('TTS') || errorMsg.includes('401') || errorMsg.includes('payment')) {
+          throw new Error('Audio generation service is temporarily unavailable. Please try again later or contact support.');
+        }
+        throw new Error(errorMsg);
+      }
+
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to generate podcast');
+      if (!data.success) {
+        const errorMsg = data.error || 'Failed to generate podcast';
+        if (errorMsg.includes('TTS') || errorMsg.includes('401') || errorMsg.includes('payment')) {
+          throw new Error('Audio generation service is temporarily unavailable. Please try again later or contact support.');
+        }
+        throw new Error(errorMsg);
+      }
 
       const audio = data.audioUrl ? new Audio(data.audioUrl) : new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
       setAudioElement(audio);
@@ -206,7 +239,9 @@ export default function Podcast() {
       toast.success('Your career podcast is ready and saved!');
     } catch (error: any) {
       console.error('Podcast generation error:', error);
-      toast.error(error.message || 'Failed to generate podcast');
+      const msg = error.message || 'Failed to generate podcast. Please try again.';
+      setGenerationError(msg);
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -320,7 +355,7 @@ export default function Podcast() {
                 <CardDescription>Listen to your previously generated podcasts</CardDescription>
               </CardHeader>
               <CardContent>
-                <SavedPodcasts key={savedPodcastKey} onPlayPodcast={handlePlaySavedPodcast} />
+                <SavedPodcasts key={savedPodcastKey} onPlayPodcast={handlePlaySavedPodcast} onDeletePodcast={handleDeletePodcast} />
               </CardContent>
             </Card>
 
@@ -384,6 +419,11 @@ export default function Podcast() {
                     <p className="text-xs text-muted-foreground text-center">
                       This may take 1-2 minutes. Please don't close this page.
                     </p>
+                  )}
+                  {generationError && !isGenerating && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive text-center">
+                      {generationError}
+                    </div>
                   )}
                 </CardContent>
               )}

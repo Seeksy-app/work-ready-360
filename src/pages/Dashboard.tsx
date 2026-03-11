@@ -11,6 +11,16 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Loader2,
   CheckCircle2,
   Circle,
@@ -19,6 +29,7 @@ import {
   PanelRightClose,
   Lock,
   SkipForward,
+  RefreshCw,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import AgentChat from '@/components/AgentChat';
@@ -63,6 +74,7 @@ export default function Dashboard() {
   const [podcastSkipped, setPodcastSkipped] = useState(() => localStorage.getItem('wr360_podcast_skipped') === 'true');
   const prevCompleted = useRef<Set<string>>(new Set());
   const [weather, setWeather] = useState<string | null>(null);
+  const [showRegenDialog, setShowRegenDialog] = useState(false);
 
   const fireConfetti = () => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#10b981', '#6366f1', '#ec4899'] });
@@ -108,17 +120,33 @@ export default function Dashboard() {
     if (!user) return;
     const [profileRes, interestRes, workRes, resumeRes, podcastRes] = await Promise.all([
       supabase.from('profiles').select('zip_code').eq('user_id', user.id).single(),
-      supabase.from('interest_profiler_results').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('work_importance_results').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('resumes').select('id').eq('user_id', user.id).limit(1),
-      supabase.from('podcasts').select('id').eq('user_id', user.id).eq('status', 'completed').limit(1),
+      supabase.from('interest_profiler_results').select('id, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(1),
+      supabase.from('work_importance_results').select('id, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(1),
+      supabase.from('resumes').select('id, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
+      supabase.from('podcasts').select('id, created_at').eq('user_id', user.id).eq('status', 'completed').order('created_at', { ascending: false }).limit(1),
     ]);
+    const hadPodcastsBefore = hasPodcasts;
     setHasProfileComplete(!!(profileRes.data as any)?.zip_code);
     setHasInterestResults((interestRes.data?.length || 0) > 0);
     setHasWorkImportanceResults((workRes.data?.length || 0) > 0);
     setHasResume((resumeRes.data?.length || 0) > 0);
-    setHasPodcasts((podcastRes.data?.length || 0) > 0);
+    const nowHasPodcasts = (podcastRes.data?.length || 0) > 0;
+    setHasPodcasts(nowHasPodcasts);
     setCompletionChecked(true);
+
+    // Check if profile data is newer than latest podcast
+    if (nowHasPodcasts && podcastRes.data?.[0]) {
+      const podcastDate = new Date(podcastRes.data[0].created_at).getTime();
+      const newerData = [
+        interestRes.data?.[0]?.completed_at,
+        workRes.data?.[0]?.completed_at,
+        resumeRes.data?.[0]?.created_at,
+      ].some(d => d && new Date(d).getTime() > podcastDate);
+
+      if (newerData && !sessionStorage.getItem('wr360_regen_dismissed')) {
+        setShowRegenDialog(true);
+      }
+    }
   };
 
   useEffect(() => { checkCompletionStatus(); }, [user]);
@@ -548,6 +576,35 @@ export default function Dashboard() {
         onOpenChange={setProfileSheetOpen}
         onSaved={checkCompletionStatus}
       />
+
+      {/* Re-generate Podcast Dialog */}
+      <AlertDialog open={showRegenDialog} onOpenChange={setShowRegenDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-primary" />
+              Your profile has been updated
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              It looks like you've updated your assessments or resume since your last podcast was generated. Would you like to create a new podcast with your latest data?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              sessionStorage.setItem('wr360_regen_dismissed', 'true');
+              setShowRegenDialog(false);
+            }}>
+              Not now
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowRegenDialog(false);
+              navigate('/generate-podcast');
+            }}>
+              Generate New Podcast
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
