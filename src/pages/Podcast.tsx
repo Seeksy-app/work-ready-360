@@ -355,7 +355,7 @@ export default function Podcast() {
                 <CardDescription>Listen to your previously generated podcasts</CardDescription>
               </CardHeader>
               <CardContent>
-                <SavedPodcasts key={savedPodcastKey} onPlayPodcast={handlePlaySavedPodcast} />
+                <SavedPodcasts key={savedPodcastKey} onPlayPodcast={handlePlaySavedPodcast} onDeletePodcast={handleDeletePodcast} />
               </CardContent>
             </Card>
 
