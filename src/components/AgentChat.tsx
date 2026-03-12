@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Paperclip, Smile, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -184,24 +184,37 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
 
       {/* Input area */}
       <div className="p-4 border-t border-border">
-        <div className="relative bg-card rounded-2xl border border-border shadow-sm">
+        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about careers, resumes, assessments..."
-            className="border-0 bg-transparent resize-none min-h-[60px] max-h-[120px] pr-12 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl text-sm"
+            placeholder="Ask a question..."
+            className="border-0 bg-transparent resize-none min-h-[48px] max-h-[120px] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-sm px-4 pt-3 pb-1"
             disabled={isLoading}
           />
-          <Button
-            size="icon"
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isLoading}
-            className="absolute bottom-3 right-3 rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center justify-between px-3 pb-2">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
+                <Smile className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
+                <Mic className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button
+              size="icon"
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || isLoading}
+              className="rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
