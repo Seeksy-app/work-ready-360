@@ -91,43 +91,61 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          city: string | null
           created_at: string
           email: string
           full_name: string | null
           id: string
           linkedin_data: Json | null
           linkedin_url: string | null
+          mascot_choice: string | null
           notifications_enabled: boolean | null
+          phone: string | null
           role: string
           share_token: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
           user_id: string
           zip_code: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          city?: string | null
           created_at?: string
           email: string
           full_name?: string | null
           id?: string
           linkedin_data?: Json | null
           linkedin_url?: string | null
+          mascot_choice?: string | null
           notifications_enabled?: boolean | null
+          phone?: string | null
           role?: string
           share_token?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
           user_id: string
           zip_code?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          city?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
           id?: string
           linkedin_data?: Json | null
           linkedin_url?: string | null
+          mascot_choice?: string | null
           notifications_enabled?: boolean | null
+          phone?: string | null
           role?: string
           share_token?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
           user_id?: string
           zip_code?: string | null

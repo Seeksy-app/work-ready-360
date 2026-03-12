@@ -1,11 +1,32 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { FileText, BarChart3, Mic, BookOpen, Compass, User } from 'lucide-react';
+import { FileText, BarChart3, Mic, BookOpen, Compass, User, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+import mascotDefault from '@/assets/agent360-mascot.png';
+import mascotChef from '@/assets/mascots/mascot-chef.png';
+import mascotNurse from '@/assets/mascots/mascot-nurse.png';
+import mascotEngineer from '@/assets/mascots/mascot-engineer.png';
+import mascotGraduate from '@/assets/mascots/mascot-graduate.png';
+import mascotArtist from '@/assets/mascots/mascot-artist.png';
+import mascotBusiness from '@/assets/mascots/mascot-business.png';
+import mascotScientist from '@/assets/mascots/mascot-scientist.png';
+
+const MASCOT_MAP: Record<string, string> = {
+  default: mascotDefault,
+  chef: mascotChef,
+  nurse: mascotNurse,
+  engineer: mascotEngineer,
+  graduate: mascotGraduate,
+  artist: mascotArtist,
+  business: mascotBusiness,
+  scientist: mascotScientist,
+};
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: BarChart3, requiresPodcast: false },
@@ -18,8 +39,11 @@ const NAV_ITEMS = [
 
 export default function DashboardNav() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [hasPodcast, setHasPodcast] = useState(false);
+
+  const mascotChoice = (profile as any)?.mascot_choice || 'default';
+  const mascotSrc = MASCOT_MAP[mascotChoice] || mascotDefault;
 
   useEffect(() => {
     if (!user) return;
@@ -33,8 +57,8 @@ export default function DashboardNav() {
   }, [user]);
 
   return (
-    <nav className="border-b bg-card/50 backdrop-blur-sm">
-      <div className="px-6 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+    <nav className="border-b bg-card/50 backdrop-blur-sm flex items-center">
+      <div className="px-6 flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -73,6 +97,21 @@ export default function DashboardNav() {
           );
         })}
       </div>
+
+      {/* Settings avatar */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link to="/settings" className="shrink-0 pr-4 pl-2 py-1.5">
+            <Avatar className="h-8 w-8 border-2 border-border hover:border-accent transition-colors cursor-pointer">
+              <AvatarImage src={mascotSrc} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                <Settings className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Settings</TooltipContent>
+      </Tooltip>
     </nav>
   );
 }
