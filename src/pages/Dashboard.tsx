@@ -355,6 +355,7 @@ export default function Dashboard() {
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={(profile as any)?.avatar_url} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
