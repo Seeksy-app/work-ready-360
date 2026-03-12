@@ -44,6 +44,7 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       const p = profile as any;
+      setDisplayName(p.full_name || '');
       setZipCode(p.zip_code || '');
       setNotifications(p.notifications_enabled ?? true);
       setStreetAddress(p.street_address || '');
