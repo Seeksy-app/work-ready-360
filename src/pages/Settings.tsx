@@ -276,7 +276,7 @@ export default function Settings() {
             <CardDescription>Pick a mascot that represents your career vibe!</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-4 gap-4">
               {MASCOTS.map((mascot) => (
                 <button
                   key={mascot.id}
