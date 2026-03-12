@@ -19,6 +19,7 @@ import Admin from "./pages/Admin";
 import AdminWip from "./pages/AdminWip";
 import AdminWipSession from "./pages/AdminWipSession";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
 import MySummary from "./pages/MySummary";
 import GeneratePodcast from "./pages/GeneratePodcast";
 

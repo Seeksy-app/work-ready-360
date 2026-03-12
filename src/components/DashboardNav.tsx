@@ -58,7 +58,7 @@ export default function DashboardNav() {
 
   return (
     <nav className="border-b bg-card/50 backdrop-blur-sm">
-      <div className="px-6 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+      <div className="px-6 flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -97,6 +97,21 @@ export default function DashboardNav() {
           );
         })}
       </div>
+
+      {/* Settings avatar */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link to="/settings" className="shrink-0 pr-4 pl-2 py-1.5">
+            <Avatar className="h-8 w-8 border-2 border-border hover:border-accent transition-colors cursor-pointer">
+              <AvatarImage src={mascotSrc} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                <Settings className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Settings</TooltipContent>
+      </Tooltip>
     </nav>
   );
 }
