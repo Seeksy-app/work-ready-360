@@ -112,6 +112,29 @@ export default function Settings() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be under 2MB');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${user.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() } as any).eq('user_id', user.id);
+      toast.success('Profile image updated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload image');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

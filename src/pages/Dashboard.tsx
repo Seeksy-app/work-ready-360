@@ -546,18 +546,21 @@ export default function Dashboard() {
 
       {/* Sidebar chat */}
       <aside className={`${chatOpen ? 'w-[380px]' : 'w-0'} hidden md:flex flex-col border-l border-border bg-card transition-all duration-300 overflow-hidden flex-shrink-0`}>
-        <div className="flex items-center justify-between px-4 h-16 border-b border-border">
-          <div className="flex items-center gap-2">
-            <img src={mascot} alt="Agent360" className="h-7 w-7 rounded-full object-cover" />
-            <span className="font-semibold text-sm">Agent360</span>
-            <span className="text-xs font-bold text-primary">360</span>
-          </div>
+        <div className="flex items-center justify-between px-4 h-12 border-b border-border">
+          <span className="font-semibold text-sm text-foreground">Agent360</span>
           <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="h-7 w-7">
             <PanelRightClose className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex-1 min-h-0">
           <AgentChat onboardingComplete={completedSteps >= 4} />
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3 border-t border-border">
+          <img src={mascot} alt="Agent360" className="h-10 w-10 rounded-full object-cover border-2 border-primary/30" />
+          <div>
+            <span className="text-sm font-semibold text-foreground">Agent360</span>
+            <p className="text-xs text-muted-foreground">Your AI career coach</p>
+          </div>
         </div>
       </aside>
 
