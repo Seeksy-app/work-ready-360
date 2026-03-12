@@ -18,6 +18,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
 
+  const [displayName, setDisplayName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -29,6 +30,7 @@ export default function Settings() {
   const [twitterUrl, setTwitterUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Password change
   const [newPassword, setNewPassword] = useState('');
