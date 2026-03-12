@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import OnetAttribution from '@/components/OnetAttribution';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
