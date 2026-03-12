@@ -31,7 +31,7 @@ import {
   SkipForward,
   RefreshCw,
 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AgentChat from '@/components/AgentChat';
 import ProfileSheet from '@/components/ProfileSheet';
 import DashboardNav from '@/components/DashboardNav';
