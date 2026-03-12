@@ -65,6 +65,7 @@ export default function Settings() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: displayName.trim() || null,
           street_address: streetAddress.trim() || null,
           city: city.trim() || null,
           state: state.trim() || null,
