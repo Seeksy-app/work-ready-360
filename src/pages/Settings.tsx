@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter } from 'lucide-react';
+import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { MASCOTS } from '@/lib/mascots';
@@ -18,6 +18,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
 
+  const [displayName, setDisplayName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -29,6 +30,7 @@ export default function Settings() {
   const [twitterUrl, setTwitterUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Password change
   const [newPassword, setNewPassword] = useState('');
@@ -42,6 +44,7 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       const p = profile as any;
+      setDisplayName(p.full_name || '');
       setZipCode(p.zip_code || '');
       setNotifications(p.notifications_enabled ?? true);
       setStreetAddress(p.street_address || '');
@@ -62,6 +65,7 @@ export default function Settings() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: displayName.trim() || null,
           street_address: streetAddress.trim() || null,
           city: city.trim() || null,
           state: state.trim() || null,
@@ -108,6 +112,29 @@ export default function Settings() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be under 2MB');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${user.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() } as any).eq('user_id', user.id);
+      toast.success('Profile image updated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload image');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -136,13 +163,22 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={MASCOTS.find(m => m.id === mascotChoice)?.src} />
-                <AvatarFallback className="text-lg bg-primary text-primary-foreground">{initials}</AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle>{profile?.full_name || 'Your Profile'}</CardTitle>
-                <CardDescription>{profile?.email}</CardDescription>
+              <div className="relative group">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={(profile as any)?.avatar_url || MASCOTS.find(m => m.id === mascotChoice)?.src} />
+                  <AvatarFallback className="text-xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <Camera className="h-5 w-5 text-white" />
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                </label>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div>
+                  <Label htmlFor="displayName">Display Name</Label>
+                  <Input id="displayName" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your display name" />
+                </div>
+                <p className="text-sm text-muted-foreground">{profile?.email}</p>
               </div>
             </div>
           </CardHeader>
@@ -240,20 +276,20 @@ export default function Settings() {
             <CardDescription>Pick a mascot that represents your career vibe!</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-4 gap-4">
               {MASCOTS.map((mascot) => (
                 <button
                   key={mascot.id}
                   onClick={() => setMascotChoice(mascot.id)}
                   className={cn(
-                    'relative flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all hover:scale-105',
+                    'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all hover:scale-105',
                     mascotChoice === mascot.id
                       ? 'border-accent bg-accent/10 shadow-md'
                       : 'border-border hover:border-accent/50'
                   )}
                 >
-                  <img src={mascot.src} alt={mascot.label} className="h-14 w-14 object-contain" />
-                  <span className="text-[10px] font-medium text-foreground leading-tight text-center">{mascot.label}</span>
+                  <img src={mascot.src} alt={mascot.label} className="h-20 w-20 object-contain" />
+                  <span className="text-xs font-medium text-foreground leading-tight text-center">{mascot.label}</span>
                   {mascotChoice === mascot.id && (
                     <div className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground rounded-full p-0.5">
                       <Check className="h-3 w-3" />
