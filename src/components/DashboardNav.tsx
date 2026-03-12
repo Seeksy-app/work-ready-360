@@ -23,8 +23,7 @@ export default function DashboardNav() {
   const { user, profile } = useAuth();
   const [hasPodcast, setHasPodcast] = useState(false);
 
-  const mascotChoice = (profile as any)?.mascot_choice || 'default';
-  const mascotSrc = MASCOT_MAP[mascotChoice] || mascotDefault;
+  const mascotSrc = getMascotSrc((profile as any)?.mascot_choice);
 
   useEffect(() => {
     if (!user) return;
