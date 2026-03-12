@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
-import mascot from '@/assets/agent360-mascot.png';
+import { getMascotSrc } from '@/lib/mascots';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -25,6 +25,7 @@ interface AgentChatProps {
 
 export default function AgentChat({ onboardingComplete = false }: AgentChatProps) {
   const { profile, user } = useAuth();
+  const mascot = getMascotSrc((profile as any)?.mascot_choice);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

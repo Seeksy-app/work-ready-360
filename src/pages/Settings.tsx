@@ -8,31 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Save, Lock, Check } from 'lucide-react';
+import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-import mascotDefault from '@/assets/agent360-mascot.png';
-import mascotChef from '@/assets/mascots/mascot-chef.png';
-import mascotNurse from '@/assets/mascots/mascot-nurse.png';
-import mascotEngineer from '@/assets/mascots/mascot-engineer.png';
-import mascotGraduate from '@/assets/mascots/mascot-graduate.png';
-import mascotArtist from '@/assets/mascots/mascot-artist.png';
-import mascotBusiness from '@/assets/mascots/mascot-business.png';
-import mascotScientist from '@/assets/mascots/mascot-scientist.png';
-
-const MASCOTS = [
-  { id: 'default', label: 'Agent 360', src: mascotDefault },
-  { id: 'chef', label: 'Chef', src: mascotChef },
-  { id: 'nurse', label: 'Healthcare', src: mascotNurse },
-  { id: 'engineer', label: 'Engineer', src: mascotEngineer },
-  { id: 'graduate', label: 'Graduate', src: mascotGraduate },
-  { id: 'artist', label: 'Artist', src: mascotArtist },
-  { id: 'business', label: 'Business', src: mascotBusiness },
-  { id: 'scientist', label: 'Scientist', src: mascotScientist },
-];
+import { MASCOTS } from '@/lib/mascots';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -45,6 +25,9 @@ export default function Settings() {
   const [phone, setPhone] = useState('');
   const [notifications, setNotifications] = useState(true);
   const [mascotChoice, setMascotChoice] = useState('default');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Password change
@@ -66,6 +49,9 @@ export default function Settings() {
       setState(p.state || '');
       setPhone(p.phone || '');
       setMascotChoice(p.mascot_choice || 'default');
+      setLinkedinUrl(p.linkedin_url || '');
+      setTwitterUrl(p.twitter_url || '');
+      setWebsiteUrl(p.website_url || '');
     }
   }, [profile]);
 
@@ -83,6 +69,9 @@ export default function Settings() {
           phone: phone.trim() || null,
           notifications_enabled: notifications,
           mascot_choice: mascotChoice,
+          linkedin_url: linkedinUrl.trim() || null,
+          twitter_url: twitterUrl.trim() || null,
+          website_url: websiteUrl.trim() || null,
           updated_at: new Date().toISOString(),
         } as any)
         .eq('user_id', user.id);
@@ -135,7 +124,13 @@ export default function Settings() {
     <div className="min-h-screen bg-background">
       <DashboardNav />
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        {/* Back + Title */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="shrink-0">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        </div>
 
         {/* Profile Info */}
         <Card>
@@ -189,6 +184,35 @@ export default function Settings() {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone (optional)</Label>
               <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Social Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Social Links</CardTitle>
+            <CardDescription>Connect your profiles to personalize your experience</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="linkedin" className="flex items-center gap-2">
+                <Linkedin className="h-4 w-4" /> LinkedIn URL
+              </Label>
+              <Input id="linkedin" value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/yourprofile" />
+              <p className="text-xs text-muted-foreground">We'll import your work history & skills to personalize your podcast</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="twitter" className="flex items-center gap-2">
+                <Twitter className="h-4 w-4" /> X / Twitter
+              </Label>
+              <Input id="twitter" value={twitterUrl} onChange={e => setTwitterUrl(e.target.value)} placeholder="https://x.com/yourhandle" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="website" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" /> Personal Website
+              </Label>
+              <Input id="website" value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yoursite.com" />
             </div>
           </CardContent>
         </Card>
