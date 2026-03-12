@@ -163,15 +163,28 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="relative group">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={(profile as any)?.avatar_url || MASCOTS.find(m => m.id === mascotChoice)?.src} />
-                  <AvatarFallback className="text-xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
-                </Avatar>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Camera className="h-5 w-5 text-white" />
-                  <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
-                </label>
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={(profile as any)?.avatar_url} />
+                    <AvatarFallback className="text-2xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                  </Avatar>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {uploadingAvatar ? (
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-white" />
+                    )}
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                  </label>
+                </div>
+                <button
+                  onClick={() => document.querySelector<HTMLInputElement>('#avatar-upload')?.click()}
+                  className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                >
+                  {uploadingAvatar ? 'Uploading...' : 'Change Photo'}
+                </button>
+                <input id="avatar-upload" type="file" accept="image/*" className="sr-only" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
               </div>
               <div className="flex-1 space-y-2">
                 <div>

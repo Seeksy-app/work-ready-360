@@ -1,15 +1,19 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowUp, Paperclip, Smile, Mic } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowUp, Paperclip, Mic, MicOff, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import { getMascotSrc } from '@/lib/mascots';
+import { toast } from 'sonner';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type Attachment = { file: File; preview?: string };
+type Msg = { role: 'user' | 'assistant'; content: string; attachments?: string[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`;
+const SCRIBE_TOKEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-scribe-token`;
 
 const STARTER_SUGGESTIONS = [
   { emoji: '🧭', label: 'Explain my interest results' },
@@ -29,8 +33,15 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [partialTranscript, setPartialTranscript] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
 
@@ -40,14 +51,79 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
     }
   }, [messages]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newAttachments: Attachment[] = files.map(file => {
+      const isImage = file.type.startsWith('image/');
+      return {
+        file,
+        preview: isImage ? URL.createObjectURL(file) : undefined,
+      };
+    });
+
+    setAttachments(prev => [...prev, ...newAttachments].slice(0, 5));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => {
+      const removed = prev[index];
+      if (removed.preview) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const uploadAttachments = async (): Promise<string[]> => {
+    if (!user || attachments.length === 0) return [];
+    const urls: string[] = [];
+    for (const att of attachments) {
+      const ext = att.file.name.split('.').pop() || 'bin';
+      const path = `chat/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('avatars').upload(path, att.file);
+      if (error) {
+        console.error('Upload error:', error);
+        continue;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      urls.push(publicUrl);
+    }
+    return urls;
+  };
+
   const sendMessage = async (text?: string) => {
     const trimmed = (text || input).trim();
-    if (!trimmed || isLoading) return;
+    if ((!trimmed && attachments.length === 0) || isLoading) return;
 
-    const userMsg: Msg = { role: 'user', content: trimmed };
+    setIsLoading(true);
+
+    // Upload any attachments
+    let uploadedUrls: string[] = [];
+    if (attachments.length > 0) {
+      uploadedUrls = await uploadAttachments();
+      // Clean up previews
+      attachments.forEach(a => { if (a.preview) URL.revokeObjectURL(a.preview); });
+      setAttachments([]);
+    }
+
+    const userContent = uploadedUrls.length > 0
+      ? `${trimmed}\n\n[Attached ${uploadedUrls.length} file(s)]`
+      : trimmed;
+
+    const userMsg: Msg = { role: 'user', content: userContent, attachments: uploadedUrls.length > 0 ? uploadedUrls : undefined };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setIsLoading(true);
 
     let assistantSoFar = '';
 
@@ -58,7 +134,7 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        body: JSON.stringify({ messages: [...messages, { role: 'user', content: userContent }] }),
       });
 
       if (!resp.ok || !resp.body) {
@@ -113,6 +189,102 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
     }
   };
 
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Get scribe token
+      const tokenRes = await fetch(SCRIBE_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
+      
+      if (!tokenRes.ok) {
+        // Fallback: use basic MediaRecorder for speech
+        toast.error('Voice service unavailable. Using basic recording.');
+        const mediaRecorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+        mediaRecorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+        mediaRecorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          // For now just notify - basic fallback
+          toast.info('Recording saved. Voice transcription requires ElevenLabs setup.');
+        };
+        mediaRecorder.start();
+        mediaRecorderRef.current = mediaRecorder;
+        setIsRecording(true);
+        return;
+      }
+      
+      const { token } = await tokenRes.json();
+      
+      // Connect to ElevenLabs Scribe WebSocket
+      const ws = new WebSocket(`wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&token=${token}&language_code=eng`);
+      wsRef.current = ws;
+      
+      ws.onopen = () => {
+        // Start sending audio via MediaRecorder
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+        mediaRecorderRef.current = mediaRecorder;
+        
+        mediaRecorder.ondataavailable = async (e) => {
+          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            const buffer = await e.data.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+            ws.send(JSON.stringify({ audio: base64 }));
+          }
+        };
+        
+        mediaRecorder.start(250); // Send chunks every 250ms
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'partial_transcript' && data.text) {
+            setPartialTranscript(data.text);
+          } else if (data.type === 'committed_transcript' && data.text) {
+            setInput(prev => (prev ? prev + ' ' : '') + data.text);
+            setPartialTranscript('');
+          }
+        } catch (err) {
+          console.error('WS parse error:', err);
+        }
+      };
+      
+      ws.onerror = (err) => {
+        console.error('WS error:', err);
+        toast.error('Voice connection error');
+        stopRecording();
+      };
+      
+      ws.onclose = () => {
+        stream.getTracks().forEach(t => t.stop());
+      };
+      
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Mic error:', err);
+      toast.error('Could not access microphone. Please check permissions.');
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setIsRecording(false);
+    setPartialTranscript('');
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -130,7 +302,6 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
               <p className="font-medium text-foreground">Hi {firstName}! I'm Agent360 🤖</p>
               <p className="mt-1 text-xs">Ask me about assessments, resumes, career paths & more.</p>
 
-              {/* Starter suggestions — only shown after onboarding */}
               {onboardingComplete && (
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {STARTER_SUGGESTIONS.map((s) => (
@@ -152,18 +323,28 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
               {msg.role === 'assistant' && (
                 <img src={mascot} alt="Agent360" className="w-7 h-7 rounded-full flex-shrink-0 mt-1 object-cover" />
               )}
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'bg-muted text-foreground rounded-bl-md'
-              }`}>
-                {msg.role === 'assistant' ? (
-                  <div className="prose prose-sm max-w-none [&>p]:m-0">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <div className={`max-w-[85%] space-y-2`}>
+                {/* Show image attachments */}
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {msg.attachments.map((url, j) => (
+                      <img key={j} src={url} alt="Attachment" className="max-w-[200px] max-h-[150px] rounded-xl object-cover border border-border" />
+                    ))}
                   </div>
-                ) : (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
                 )}
+                <div className={`rounded-2xl px-4 py-2.5 text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                    : 'bg-muted text-foreground rounded-bl-md'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm max-w-none [&>p]:m-0">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -182,6 +363,37 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
         </div>
       </ScrollArea>
 
+      {/* Attachment previews */}
+      {attachments.length > 0 && (
+        <div className="px-4 pb-2 flex gap-2 flex-wrap">
+          {attachments.map((att, i) => (
+            <div key={i} className="relative group">
+              {att.preview ? (
+                <img src={att.preview} alt={att.file.name} className="h-16 w-16 rounded-lg object-cover border border-border" />
+              ) : (
+                <div className="h-16 w-16 rounded-lg border border-border bg-muted flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-[8px] text-muted-foreground mt-0.5 truncate max-w-[50px]">{att.file.name.split('.').pop()}</span>
+                </div>
+              )}
+              <button
+                onClick={() => removeAttachment(i)}
+                className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Voice transcript indicator */}
+      {isRecording && partialTranscript && (
+        <div className="px-4 pb-1">
+          <p className="text-xs text-muted-foreground italic animate-pulse">🎙️ {partialTranscript}</p>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="p-4 border-t border-border">
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -190,26 +402,43 @@ export default function AgentChat({ onboardingComplete = false }: AgentChatProps
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question..."
+            placeholder={isRecording ? 'Listening...' : 'Ask a question...'}
             className="border-0 bg-transparent resize-none min-h-[48px] max-h-[120px] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-sm px-4 pt-3 pb-1"
             disabled={isLoading}
           />
           <div className="flex items-center justify-between px-3 pb-2">
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                multiple
+                className="sr-only"
+                onChange={handleFileSelect}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+              >
                 <Paperclip className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
-                <Smile className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" disabled>
-                <Mic className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 transition-colors ${isRecording ? 'text-destructive bg-destructive/10 hover:text-destructive' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isLoading}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
             </div>
             <Button
               size="icon"
               onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
+              disabled={(!input.trim() && attachments.length === 0) || isLoading}
               className="rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
             >
               <ArrowUp className="h-4 w-4" />
