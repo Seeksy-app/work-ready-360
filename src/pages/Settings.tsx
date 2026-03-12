@@ -259,14 +259,14 @@ export default function Settings() {
                   key={mascot.id}
                   onClick={() => setMascotChoice(mascot.id)}
                   className={cn(
-                    'relative flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all hover:scale-105',
+                    'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all hover:scale-105',
                     mascotChoice === mascot.id
                       ? 'border-accent bg-accent/10 shadow-md'
                       : 'border-border hover:border-accent/50'
                   )}
                 >
-                  <img src={mascot.src} alt={mascot.label} className="h-14 w-14 object-contain" />
-                  <span className="text-[10px] font-medium text-foreground leading-tight text-center">{mascot.label}</span>
+                  <img src={mascot.src} alt={mascot.label} className="h-20 w-20 object-contain" />
+                  <span className="text-xs font-medium text-foreground leading-tight text-center">{mascot.label}</span>
                   {mascotChoice === mascot.id && (
                     <div className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground rounded-full p-0.5">
                       <Check className="h-3 w-3" />
