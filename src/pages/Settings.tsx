@@ -140,13 +140,22 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={MASCOTS.find(m => m.id === mascotChoice)?.src} />
-                <AvatarFallback className="text-lg bg-primary text-primary-foreground">{initials}</AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle>{profile?.full_name || 'Your Profile'}</CardTitle>
-                <CardDescription>{profile?.email}</CardDescription>
+              <div className="relative group">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={(profile as any)?.avatar_url || MASCOTS.find(m => m.id === mascotChoice)?.src} />
+                  <AvatarFallback className="text-xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <Camera className="h-5 w-5 text-white" />
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                </label>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div>
+                  <Label htmlFor="displayName">Display Name</Label>
+                  <Input id="displayName" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your display name" />
+                </div>
+                <p className="text-sm text-muted-foreground">{profile?.email}</p>
               </div>
             </div>
           </CardHeader>
