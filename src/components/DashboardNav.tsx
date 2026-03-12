@@ -7,26 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-import mascotDefault from '@/assets/agent360-mascot.png';
-import mascotChef from '@/assets/mascots/mascot-chef.png';
-import mascotNurse from '@/assets/mascots/mascot-nurse.png';
-import mascotEngineer from '@/assets/mascots/mascot-engineer.png';
-import mascotGraduate from '@/assets/mascots/mascot-graduate.png';
-import mascotArtist from '@/assets/mascots/mascot-artist.png';
-import mascotBusiness from '@/assets/mascots/mascot-business.png';
-import mascotScientist from '@/assets/mascots/mascot-scientist.png';
-
-const MASCOT_MAP: Record<string, string> = {
-  default: mascotDefault,
-  chef: mascotChef,
-  nurse: mascotNurse,
-  engineer: mascotEngineer,
-  graduate: mascotGraduate,
-  artist: mascotArtist,
-  business: mascotBusiness,
-  scientist: mascotScientist,
-};
+import { getMascotSrc } from '@/lib/mascots';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: BarChart3, requiresPodcast: false },

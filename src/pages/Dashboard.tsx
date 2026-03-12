@@ -61,6 +61,7 @@ function getGreeting() {
 export default function Dashboard() {
   const { user, profile, loading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const mascot = getMascotSrc((profile as any)?.mascot_choice);
   const [chatOpen, setChatOpen] = useState(true);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
