@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter } from 'lucide-react';
+import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { MASCOTS } from '@/lib/mascots';
