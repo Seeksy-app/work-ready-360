@@ -48,6 +48,7 @@ const App = () => (
             <Route path="/generate-podcast" element={<GeneratePodcast />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/wip" element={<AdminWip />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/admin/wip/:sessionId" element={<AdminWipSession />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
