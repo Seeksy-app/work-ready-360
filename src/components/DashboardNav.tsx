@@ -57,7 +57,7 @@ export default function DashboardNav() {
   }, [user]);
 
   return (
-    <nav className="border-b bg-card/50 backdrop-blur-sm">
+    <nav className="border-b bg-card/50 backdrop-blur-sm flex items-center">
       <div className="px-6 flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
