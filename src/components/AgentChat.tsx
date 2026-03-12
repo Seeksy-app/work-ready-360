@@ -25,6 +25,7 @@ interface AgentChatProps {
 
 export default function AgentChat({ onboardingComplete = false }: AgentChatProps) {
   const { profile, user } = useAuth();
+  const mascot = getMascotSrc((profile as any)?.mascot_choice);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import mascot from '@/assets/agent360-mascot.png';
+import { getMascotSrc } from '@/lib/mascots';
 import logo360 from '@/assets/logo-360.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
