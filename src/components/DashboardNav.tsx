@@ -39,8 +39,11 @@ const NAV_ITEMS = [
 
 export default function DashboardNav() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [hasPodcast, setHasPodcast] = useState(false);
+
+  const mascotChoice = (profile as any)?.mascot_choice || 'default';
+  const mascotSrc = MASCOT_MAP[mascotChoice] || mascotDefault;
 
   useEffect(() => {
     if (!user) return;
