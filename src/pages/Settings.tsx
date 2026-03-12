@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,10 +13,21 @@ import { Loader2, Save, Lock, Check, ArrowLeft, Linkedin, Globe, Twitter, Camera
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { MASCOTS } from '@/lib/mascots';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
@@ -31,11 +42,15 @@ export default function Settings() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Password change
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPw, setChangingPw] = useState(false);
+
+  // Unsaved changes guard
+  const [pendingNavPath, setPendingNavPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -55,8 +70,47 @@ export default function Settings() {
       setLinkedinUrl(p.linkedin_url || '');
       setTwitterUrl(p.twitter_url || '');
       setWebsiteUrl(p.website_url || '');
+      setAvatarUrl(p.avatar_url || null);
     }
   }, [profile]);
+
+  // Detect unsaved changes
+  const hasChanges = useMemo(() => {
+    if (!profile) return false;
+    const p = profile as any;
+    return (
+      displayName !== (p.full_name || '') ||
+      streetAddress !== (p.street_address || '') ||
+      city !== (p.city || '') ||
+      state !== (p.state || '') ||
+      zipCode !== (p.zip_code || '') ||
+      phone !== (p.phone || '') ||
+      notifications !== (p.notifications_enabled ?? true) ||
+      mascotChoice !== (p.mascot_choice || 'default') ||
+      linkedinUrl !== (p.linkedin_url || '') ||
+      twitterUrl !== (p.twitter_url || '') ||
+      websiteUrl !== (p.website_url || '')
+    );
+  }, [profile, displayName, streetAddress, city, state, zipCode, phone, notifications, mascotChoice, linkedinUrl, twitterUrl, websiteUrl]);
+
+  // Browser beforeunload guard
+  useEffect(() => {
+    if (!hasChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasChanges]);
+
+  const guardedNavigate = useCallback((path: string) => {
+    if (hasChanges) {
+      setPendingNavPath(path);
+    } else {
+      navigate(path);
+    }
+  }, [hasChanges, navigate]);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -82,6 +136,8 @@ export default function Settings() {
 
       if (error) throw error;
       toast.success('Settings saved!');
+      // Scroll to top after save
+      topRef.current?.scrollIntoView({ behavior: 'smooth' });
     } catch (err: any) {
       toast.error(err.message || 'Failed to save settings');
     } finally {
@@ -126,7 +182,10 @@ export default function Settings() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      await supabase.from('profiles').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() } as any).eq('user_id', user.id);
+      // Bust cache by appending timestamp
+      const freshUrl = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from('profiles').update({ avatar_url: freshUrl, updated_at: new Date().toISOString() } as any).eq('user_id', user.id);
+      setAvatarUrl(freshUrl);
       toast.success('Profile image updated!');
     } catch (err: any) {
       toast.error(err.message || 'Failed to upload image');
@@ -150,13 +209,16 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background">
       <DashboardNav />
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div ref={topRef} className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Back + Title */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => guardedNavigate('/dashboard')} className="shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          {hasChanges && (
+            <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">Unsaved changes</span>
+          )}
         </div>
 
         {/* Profile Info */}
@@ -166,7 +228,7 @@ export default function Settings() {
               <div className="flex flex-col items-center gap-2">
                 <div className="relative group">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src={(profile as any)?.avatar_url} />
+                    <AvatarImage src={avatarUrl || undefined} />
                     <AvatarFallback className="text-2xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
                   </Avatar>
                   <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -345,6 +407,24 @@ export default function Settings() {
           </Button>
         </div>
       </div>
+
+      {/* Unsaved changes dialog */}
+      <AlertDialog open={!!pendingNavPath} onOpenChange={(open) => { if (!open) setPendingNavPath(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to leave without saving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (pendingNavPath) navigate(pendingNavPath); }}>
+              Leave Without Saving
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
