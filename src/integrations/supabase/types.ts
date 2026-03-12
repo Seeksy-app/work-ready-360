@@ -106,8 +106,10 @@ export type Database = {
           share_token: string | null
           state: string | null
           street_address: string | null
+          twitter_url: string | null
           updated_at: string
           user_id: string
+          website_url: string | null
           zip_code: string | null
         }
         Insert: {
@@ -126,8 +128,10 @@ export type Database = {
           share_token?: string | null
           state?: string | null
           street_address?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id: string
+          website_url?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -146,8 +150,10 @@ export type Database = {
           share_token?: string | null
           state?: string | null
           street_address?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id?: string
+          website_url?: string | null
           zip_code?: string | null
         }
         Relationships: []
