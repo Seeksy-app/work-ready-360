@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
-import mascot from '@/assets/agent360-mascot.png';
+import { getMascotSrc } from '@/lib/mascots';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
